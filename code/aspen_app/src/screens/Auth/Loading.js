@@ -1,8 +1,6 @@
 import React, {Component} from "react";
-import { Animated, Easing } from 'react-native';
 import {Center, VStack, Spinner, Heading} from "native-base";
 import _ from "lodash";
-import Constants from "expo-constants";
 import {userContext} from "../../context/user";
 
 class LoadingScreen extends Component {
@@ -10,7 +8,6 @@ class LoadingScreen extends Component {
 		super();
 		this.state = {
 			isLoading: true,
-			spinAnim: new Animated.Value(0),
 		}
 	}
 
@@ -19,16 +16,6 @@ class LoadingScreen extends Component {
 		if (!this.state.isLoading) {
 			this.props.navigation.replace('Home');
 		}
-
-		Animated.loop(Animated.timing(
-			this.state.spinAnim,
-			{
-				toValue: 1,
-				duration: 4000,
-				easing: Easing.linear,
-				useNativeDriver: true
-			}
-		)).start();
 
 	}
 
@@ -41,10 +28,6 @@ class LoadingScreen extends Component {
 	static contextType = userContext;
 
 	render() {
-		const spin = this.state.spinAnim.interpolate({
-			inputRange: [0, 1],
-			outputRange: ['0deg', '360deg']
-		});
 
 		const user = this.context.user;
 		const location = this.context.location;
