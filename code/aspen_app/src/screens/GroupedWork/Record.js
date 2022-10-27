@@ -156,17 +156,20 @@ export class Record extends Component {
 							} else if (thisAction.type === "vdx_request") {
 								return (
 									<Button
-										onPress={() => this.props.navigation.navigate('CreateVDXRequest', {
-											record: recordData,
-											title: title,
-											author: groupedWorkAuthor,
-											publisher: recordData.publisher,
-											isbn: groupedWorkISBN,
-											acceptFee: false,
-											pickupLocation: user.pickupLocationId,
-											vdxOptions: this.state.vdxOptions,
-											catalogKey: id,
-											navigation: this.props.navigation
+										onPress={() => this.props.navigation.navigate('HomeTab', {
+											screen: 'CreateVDXRequest',
+											params: {
+												record: recordData,
+												title: title,
+												author: groupedWorkAuthor,
+												publisher: recordData.publisher,
+												isbn: groupedWorkISBN,
+												acceptFee: false,
+												pickupLocation: user.pickupLocationId,
+												vdxOptions: this.state.vdxOptions,
+												catalogKey: id,
+												navigation: this.props.navigation
+											}
 										})}
 									>
 										{thisAction.title}

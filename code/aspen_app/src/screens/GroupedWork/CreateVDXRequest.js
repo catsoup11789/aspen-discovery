@@ -4,6 +4,7 @@ import _ from "lodash";
 import {loadingSpinner} from "../../components/loadingSpinner";
 import {userContext} from "../../context/user";
 import {submitVdxRequest} from "../../util/recordActions";
+import {loadError} from "../../components/loadError";
 
 class CreateVDXRequest extends Component {
 	static contextType = userContext;
@@ -11,6 +12,8 @@ class CreateVDXRequest extends Component {
 		super(props, context);
 		this.state = {
 			isLoading: true,
+			error: false,
+			errorMessage: null,
 			options: [],
 			fields: [],
 			request: {
@@ -36,9 +39,15 @@ class CreateVDXRequest extends Component {
 				options: vdxOptions,
 				fields: _.values(vdxOptions['fields']),
 				isLoading: false,
+				error: !vdxOptions.success,
+				errorMessage: vdxOptions.message ?? "Unknown error loading VDX request form"
 			})
 		} else {
-			console.log("Error")
+			this.setState({
+				isLoading: false,
+				error: true,
+				errorMessage: "Unknown error loading VDX request form",
+			})
 		}
 	}
 
@@ -206,6 +215,10 @@ class CreateVDXRequest extends Component {
 	render() {
 		if (this.state.isLoading) {
 			return ( loadingSpinner() );
+		}
+
+		if(this.state.error) {
+			return (loadError(this.state.errorMessage, ''));
 		}
 
 		return(
