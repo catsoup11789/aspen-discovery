@@ -461,9 +461,10 @@ const ILS = (props) => {
                        onPress={async () => {
                             setLoading(true);
                             completeAction(props.id, props.actionType, props.patronId, null, null, props.locations[0].code, props.libraryUrl).then((response) => {
-                                 reloadProfile(library.baseUrl).then((result) => {
+                                 reloadProfile(props.libraryUrl).then((result) => {
                                       updateUser(result);
                                  });
+                                 console.log(response);
                                  props.showAlert(response);
                                  setLoading(false);
                             });

@@ -126,9 +126,9 @@ export async function returnCheckout(userId, id, source, overDriveId, url) {
                },
           });
           const response = await api.post('/UserAPI?method=returnCheckout', postBody);
-          console.log(response);
 
           if (response.ok) {
+               console.log(response.data);
                const fetchedData = response.data;
                const result = fetchedData.result;
 
@@ -519,6 +519,7 @@ export async function cancelHold(cancelId, recordId, source, url, patronId) {
      if (response.ok) {
           const fetchedData = response.data;
           const result = fetchedData.result;
+          console.log(response.data);
 
           if (result.success === true) {
                popAlert(result.title, result.message, 'success');

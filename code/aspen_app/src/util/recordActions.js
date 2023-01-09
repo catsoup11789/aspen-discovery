@@ -89,7 +89,7 @@ export async function checkoutItem(libraryUrl, itemId, source, patronId) {
  *     <li>pickupBranch - the location id for where the hold will be picked up at</li>
  * </ul>
  **/
-export async function placeHold(url, itemId, source, patronId, pickupBranch, volumeId = null, holdType = null, recordId = null) {
+export async function placeHold(url, itemId, source, patronId, pickupBranch, volumeId = null, holdType = 'default', recordId = null) {
      const postBody = await postData();
      const api = create({
           baseURL: url + '/API',
@@ -107,7 +107,6 @@ export async function placeHold(url, itemId, source, patronId, pickupBranch, vol
           },
      });
      const response = await api.post('/UserAPI?method=placeHold', postBody);
-     console.log(response.config);
      if (response.ok) {
           const responseData = response.data;
           const results = responseData.result;

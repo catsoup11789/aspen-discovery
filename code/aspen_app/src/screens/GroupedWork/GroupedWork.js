@@ -223,6 +223,7 @@ export default class GroupedWork extends Component {
      };
 
      showAlert = (response) => {
+          console.log(response);
           if (!_.isUndefined(response.message)) {
                this.setState({
                     alert: true,
