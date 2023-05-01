@@ -37,6 +37,10 @@ public class SideLoadFile implements Comparable<SideLoadFile>{
 		return filename;
 	}
 
+	public Long getSideLoadId() {
+		return sideLoadId;
+	}
+
 	public long getDeletedTime() {
 		return deletedTime;
 	}
@@ -47,10 +51,12 @@ public class SideLoadFile implements Comparable<SideLoadFile>{
 
 	public void setExistingFile(File marcFile){
 		this.existingFile = marcFile;
-		if ((marcFile.lastModified() / 1000) > this.lastIndexed){
+		//File has changed since we last saw it or this is the first time we are seeing it
+		if ((marcFile.lastModified() / 1000) >= this.lastIndexed){
 			this.needsReindex = true;
 			this.lastChanged = marcFile.lastModified() / 1000;
 		}
+		//File has been undeleted since we last saw it
 		if (this.deletedTime != 0){
 			this.deletedTime = 0;
 			this.needsReindex = true;
@@ -65,7 +71,12 @@ public class SideLoadFile implements Comparable<SideLoadFile>{
 
 	@Override
 	public int compareTo(SideLoadFile o) {
-		return Long.compare(lastChanged, o.lastChanged);
+		int comparison = Long.compare(lastChanged, o.lastChanged);
+		if (comparison == 0) {
+			return filename.compareTo(o.filename);
+		} else {
+			return comparison;
+		}
 	}
 
 	public boolean isNeedsReindex() {
@@ -95,5 +106,22 @@ public class SideLoadFile implements Comparable<SideLoadFile>{
 
 	public long getId() {
 		return this.id;
+	}
+
+	public boolean equals(Object obj) {
+		if (obj instanceof SideLoadFile) {
+			SideLoadFile sideLoadFile = ((SideLoadFile) obj);
+			return (sideLoadFile.sideLoadId == this.sideLoadId && sideLoadFile.filename.equalsIgnoreCase(this.filename));
+		} else {
+			return false;
+		}
+	}
+
+	public String toString() {
+		return this.sideLoadId  + " " + this.filename;
+	}
+
+	public int hashCode() {
+		return this.toString().hashCode();
 	}
 }
