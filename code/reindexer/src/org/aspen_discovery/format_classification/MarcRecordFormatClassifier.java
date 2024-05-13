@@ -47,6 +47,9 @@ public class MarcRecordFormatClassifier {
 			if (settings instanceof IndexingProfile) {
 				IndexingProfile profile = (IndexingProfile) settings;
 				String formatLower = format.toLowerCase();
+				if (profile.hasTranslation("format", formatLower)) {
+					formatInfo.format = profile.translateValue("format", formatLower);
+				}
 				if (profile.hasTranslation("format_category", formatLower)) {
 					formatInfo.formatCategory = profile.translateValue("format_category", formatLower);
 				}else{
@@ -1243,6 +1246,11 @@ public class MarcRecordFormatClassifier {
 			printFormats.remove("Book+CD");
 			printFormats.remove("Book+DVD");
 			printFormats.remove("SoundDisc");
+			if (printFormats.contains("PlayStation") || printFormats.contains("PlayStation2")
+					|| printFormats.contains("PlayStation3") || printFormats.contains("PlayStation4")
+					|| printFormats.contains("PlayStation5")) {
+				printFormats.remove("PlayStation");
+			}
 		}
 	}
 
