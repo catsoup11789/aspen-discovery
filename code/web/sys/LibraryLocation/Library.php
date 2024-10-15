@@ -5069,16 +5069,18 @@ class Library extends DataObject {
 			if ($homeLibrary != null) {
 				$library->whereAdd("libraryId = $homeLibrary->libraryId");
 			}
-			$user = UserAccount::getActiveUserObj();
-			$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
-			if (!empty($additionalAdministrationLocations)) {
-				$locationsForUser = Location::getLocationListAsObjects(true);
-				$additionalAdministrationLibraries = [];
-				foreach ($locationsForUser as $location) {
-					$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
-				}
+			if (UserAccount::isLoggedIn()) {
+				$user = UserAccount::getActiveUserObj();
+				$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
+				if (!empty($additionalAdministrationLocations)) {
+					$locationsForUser = Location::getLocationListAsObjects(true);
+					$additionalAdministrationLibraries = [];
+					foreach ($locationsForUser as $location) {
+						$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
+					}
 
-				$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+					$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+				}
 			}
 		}
 		$library->find();
@@ -5105,16 +5107,18 @@ class Library extends DataObject {
 				if ($homeLibrary != null) {
 					$library->whereAdd("libraryId = $homeLibrary->libraryId");
 				}
-				$user = UserAccount::getActiveUserObj();
-				$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
-				if (!empty($additionalAdministrationLocations)) {
-					$locationsForUser = Location::getLocationListAsObjects(true);
-					$additionalAdministrationLibraries = [];
-					foreach ($locationsForUser as $location) {
-						$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
-					}
+				if (UserAccount::isLoggedIn()) {
+					$user = UserAccount::getActiveUserObj();
+					$additionalAdministrationLocations = $user->getAdditionalAdministrationLocations();
+					if (!empty($additionalAdministrationLocations)) {
+						$locationsForUser = Location::getLocationListAsObjects(true);
+						$additionalAdministrationLibraries = [];
+						foreach ($locationsForUser as $location) {
+							$additionalAdministrationLibraries[$location->libraryId] = $location->libraryId;
+						}
 
-					$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+						$library->whereAddIn('libraryId', $additionalAdministrationLibraries, false, 'OR');
+					}
 				}
 			}
 			$library->find();
@@ -5448,7 +5452,9 @@ class Library extends DataObject {
 		$thirdPartyRegistrationLocations = array_merge([
 			'-1' => 'None, Use ILS defaults'
 		], $thirdPartyRegistrationLocations);
-		$structure['ilsSection']['properties']['thirdPartyRegistrationSection']['properties']['thirdPartyRegistrationLocation']['values'] = $thirdPartyRegistrationLocations;
+		if (!empty($structure['ilsSection']['properties']['thirdPartyRegistrationSection']['properties']['thirdPartyRegistrationLocation'])) {
+			$structure['ilsSection']['properties']['thirdPartyRegistrationSection']['properties']['thirdPartyRegistrationLocation']['values'] = $thirdPartyRegistrationLocations;
+		}
 		return $structure;
 	}
 
