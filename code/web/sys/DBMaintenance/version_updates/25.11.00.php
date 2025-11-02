@@ -82,8 +82,33 @@ function getUpdates25_11_00(): array {
 		//Yanjun Li - ByWater
 
 		// Leo Stoyanov - BWS
+		'grouped_work_display_settings_showItemBarcodes' => [
+			'title' => 'Grouped Work Display Settings - Show Item Barcodes',
+			'description' => 'Add option to show item barcodes in copy details.',
+			'continueOnError' => true,
+			'sql' => [
+				"ALTER TABLE grouped_work_display_settings ADD COLUMN IF NOT EXISTS showItemBarcodes TINYINT(1) DEFAULT 0",
+			],
+		], //grouped_work_display_settings_showItemBarcodes
+		'add_theme_soft_delete_columns' => [
+			'title' => 'Add Soft Delete Columns to Themes',
+			'description' => 'Add metadata needed to support Object Restorations for Themes.',
+			'continueOnError' => false,
+			'sql' => [
+				"ALTER TABLE themes ADD COLUMN IF NOT EXISTS deleted TINYINT(1) DEFAULT 0",
+				"ALTER TABLE themes ADD COLUMN IF NOT EXISTS dateDeleted INT(11) DEFAULT 0",
+				"ALTER TABLE themes ADD COLUMN IF NOT EXISTS deletedBy INT(11) DEFAULT NULL",
+			],
+		], //add_theme_soft_delete_columns
 
 		//alexander - Open Fifth
+		'add_use_library_name_for_maps' => [
+			'title' => 'Add Use Library Name For Maps',
+			'description' => 'Allow libraries to use library name for google maps',
+			'sql' => [
+				"ALTER TABLE location ADD COLUMN useLocationNameForMaps TINYINT(1) DEFAULT 0",
+			]
+		], //add_use_library_name_for_maps
 		'change_data_types_for_grapes_js_columns' => [
 			'title' => 'Change Data Types For Grapes JS Columns',
 			'description' => 'Update column types to allow for longer pages',
