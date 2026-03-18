@@ -8,10 +8,10 @@ require_once ROOT_DIR . '/sys/SearchEntry.php';
 class ListAPI extends AbstractAPI {
 
 	/**
-	 * Get list of write operations for List API
+	 * Get list of write methods for List API
 	 * @return array
 	 */
-	protected function getWriteOperations(): array {
+	protected function getWriteMethods(): array {
 		return [
 			'createList',
 			'deleteList',
@@ -27,6 +27,22 @@ class ListAPI extends AbstractAPI {
 	}
 
 	/**
+	 * Get list of read methods for List API
+	 * @return array
+	 */
+	protected function getReadMethods(): array {
+		return [
+			'getUserLists',
+			'getListTitles',
+			'getSavedSearchesForLiDA',
+			'getSavedSearchTitles',
+			'getListDetails',
+			'getUserListGroups',
+			'getListGroupDetails'
+		];
+	}
+
+	/**
 	 * Get the write scope for List API
 	 * @return string
 	 */
@@ -34,10 +50,20 @@ class ListAPI extends AbstractAPI {
 		return 'api:list:write';
 	}
 
+	protected function getReadScope(): string {
+		return 'api:list:read';
+	}
+
+	protected function getOpenMethods(): array {
+		return [
+			'getRSSFeed'
+		];
+	}
+
 	function launch() {
 		$method = (isset($_GET['method']) && !is_array($_GET['method'])) ? $_GET['method'] : '';
 
-		$requiredScope = in_array($method, $this->getWriteOperations()) ? $this->getWriteScope() : 'api:list:read';
+		$requiredScope = in_array($method, $this->getWriteMethods()) ? $this->getWriteScope() : $this->getReadScope();
 		$authViaJWT = $this->tryJWTAuth([$requiredScope]);
 
 		global $activeLanguage;
@@ -48,7 +74,7 @@ class ListAPI extends AbstractAPI {
 				$activeLanguage = $language;
 			}
 		}
-		
+
 		if (isset($_SERVER['PHP_AUTH_USER']) || $authViaJWT) {
 			if ($this->grantTokenAccess() || $authViaJWT) {
 				if (in_array($method, [
@@ -82,6 +108,9 @@ class ListAPI extends AbstractAPI {
 			} else {
 				header('HTTP/1.0 401 Unauthorized');
 				$output = json_encode(['error' => 'unauthorized_access']);
+			}
+			if ($authViaJWT) {
+				APIAuthKeySetting::updateTokenOnUse($this->getBearerToken());
 			}
 			ExternalRequestLogEntry::logRequest('ListAPI.' . $method, $_SERVER['REQUEST_METHOD'], $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'], getallheaders(), '', $_SERVER['REDIRECT_STATUS'], $output, []);
 			echo $output;

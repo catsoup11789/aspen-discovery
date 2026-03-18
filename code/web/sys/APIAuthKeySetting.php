@@ -10,6 +10,9 @@ class APIAuthKeySetting extends DataObject {
 	public $createdAt;
 	public $userId;
 
+	public $lastUsedAt;
+	public $numCalls;
+
 	static $_objectStructure = [];
 
 	static function getObjectStructure(string $context = ''): array {
@@ -27,12 +30,12 @@ class APIAuthKeySetting extends DataObject {
 			],
 			'description' => [
 				'property' => 'description',
-				'type' => 'text',
+				'type' => ($context === 'addNew' ? 'text' : 'label'),
 				'label' => 'Name',
 				'maxLength' => 50,
 				'required' => true,
 				'readOnly' => ($context !== 'addNew'),
-				'note' => 'Names cannot be modified after token creation.',
+				'note' => 'This value should be something meaningful to identify the purpose of this token, i.e. "Lists for Library Website". This cannot be modified after token creation.',
 			],
 			'token' => [
 				'property' => 'token',
@@ -52,13 +55,14 @@ class APIAuthKeySetting extends DataObject {
 				'required' => true,
 				'hideInLists' => true,
 				'readOnly' => ($context !== 'addNew'),
-				'note' => 'Scopes cannot be modified after token creation.',
+				'note' => 'Select the minimal required scopes for the intended purpose of this token. Scopes cannot be modified after token creation.',
 				'onchange' => 'AspenDiscovery.Admin.handleAPIScopeDependencies(this)',
 			],
 			'expiresAt' => [
 				'property' => 'expiresAt',
-				'type' => 'date',
+				'type' => ($context === 'addNew' ? 'date' : 'label'),
 				'label' => 'Expires At',
+				'description' => 'The date this token will no longer be valid. Expiration date cannot be modified after token creation.',
 				'required' => true,
 			],
 			'createdAt' => [
@@ -66,7 +70,6 @@ class APIAuthKeySetting extends DataObject {
 				'type' => 'label',
 				'label' => 'Created At',
 				'default' => Date('Y-m-d H:i:s'),
-				'readOnly' => false,
 			],
 			'userId' => [
 				'property' => 'userId',
@@ -75,12 +78,24 @@ class APIAuthKeySetting extends DataObject {
 				'default' => UserAccount::getActiveUserId(),
 				'hideInLists' => true,
 			],
+			'lastUsedAt' => [
+				'property' => 'lastUsedAt',
+				'type' => 'label',
+				'label' => 'Last Used',
+			],
+			'numCalls' => [
+				'property' => 'numCalls',
+				'type' => 'label',
+				'label' => 'Number of calls',
+			]
 		];
 
 		if ($context == 'addNew') {
 			unset($structure['createdAt']);
 			unset($structure['userId']);
 			unset($structure['token']);
+			unset($structure['lastUsedAt']);
+			unset($structure['numCalls']);
 		}
 
 		self::$_objectStructure[$context] = $structure;
@@ -195,5 +210,23 @@ class APIAuthKeySetting extends DataObject {
 		$this->__set('token', $headerEncoded . "." . $payloadEncoded . "." . $signatureEncoded);
 	}
 
+	public static function verifyToken(string $token): bool {
+		$verifiedToken = new APIAuthKeySetting();
+		$verifiedToken->token = $token;
+		if ($verifiedToken->find(true)) {
+			return true;
+		}
+		return false;
+	}
+
+	public static function updateTokenOnUse(string $token): void {
+		$verifiedToken = new APIAuthKeySetting();
+		$verifiedToken->token = $token;
+		if ($verifiedToken->find(true)) {
+			$verifiedToken->lastUsedAt = date('Y-m-d H:i:s');
+			$verifiedToken->numCalls = ++$verifiedToken->numCalls;
+			$verifiedToken->update();
+		}
+	}
 
 }

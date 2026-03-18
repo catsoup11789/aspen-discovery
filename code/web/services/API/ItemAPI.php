@@ -69,6 +69,9 @@ class ItemAPI extends AbstractAPI {
 				header('HTTP/1.0 401 Unauthorized');
 				$output = json_encode(['error' => 'unauthorized_access']);
 			}
+			if ($authViaJWT) {
+				APIAuthKeySetting::updateTokenOnUse($this->getBearerToken(), '');
+			}
 			ExternalRequestLogEntry::logRequest('ItemAPI.' . $method, $_SERVER['REQUEST_METHOD'], $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'], getallheaders(), '', $_SERVER['REDIRECT_STATUS'], $output, []);
 			echo $output;
 		} elseif (IPAddress::allowAPIAccessForClientIP()) {

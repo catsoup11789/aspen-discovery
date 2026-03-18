@@ -31,6 +31,8 @@ function getUpdates26_04_00(): array {
 					  `expiresAt` datetime,
 					  `createdAt` datetime,
 					  `userId` int(11),
+					  `lastUsedAt` datetime,
+					  `numCalls` int(11) NOT NULL DEFAULT 0,
 					  PRIMARY KEY (`id`),
 					  UNIQUE KEY `token` (`token`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"

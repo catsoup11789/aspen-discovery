@@ -173,6 +173,10 @@ abstract class AbstractAPI extends Action{
 	 * @return bool
 	 */
 	protected function validateToken($token, array $requiredScopes = []): bool {
+		if (!APIAuthKeySetting::verifyToken($token)) {
+			return false;
+		}
+
 		$parts = explode('.', $token);
 		if (count($parts) != 3) {
 			return false;
@@ -259,10 +263,10 @@ abstract class AbstractAPI extends Action{
 	}
 
 	/**
-	 * Get list of write operations for this API
+	 * Get list of write methods for this API
 	 * @return array
 	 */
-	protected function getWriteOperations(): array {
+	protected function getWriteMethods(): array {
 		return [];
 	}
 
@@ -272,5 +276,29 @@ abstract class AbstractAPI extends Action{
 	 */
 	protected function getWriteScope(): string {
 		return 'api:write';
+	}
+
+	/**
+	 * Get the appropriate JWT scope for read operations
+	 * @return string
+	 */
+	protected function getReadScope(): string {
+		return 'api:read';
+	}
+
+	/**
+	 * Get list of read methods for this API
+	 * @return array
+	 */
+	protected function getReadMethods(): array {
+		return [];
+	}
+
+	/**
+	 * Get list of methods that do not require authentication for this API
+	 * @return array
+	 */
+	protected function getOpenMethods(): array {
+		return [];
 	}
 }
