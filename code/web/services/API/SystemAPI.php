@@ -3,6 +3,7 @@ require_once ROOT_DIR . '/services/API/AbstractAPI.php';
 
 class SystemAPI extends AbstractAPI {
 	function launch() : void {
+		$authViaJWT = $this->tryJWTAuth(['api:system:read']);
 		$method = (isset($_GET['method']) && !is_array($_GET['method'])) ? $_GET['method'] : '';
 
 		//Set Headers
@@ -32,8 +33,8 @@ class SystemAPI extends AbstractAPI {
 			die();
 		}
 
-		if (isset($_SERVER['PHP_AUTH_USER'])) {
-			if ($this->grantTokenAccess()) {
+		if (isset($_SERVER['PHP_AUTH_USER']) || $authViaJWT) {
+			if ($this->grantTokenAccess() || $authViaJWT) {
 				if (in_array($method, [
 					'getLibraryInfo',
 					'getLocationInfo',

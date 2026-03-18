@@ -26,6 +26,7 @@ class ItemAPI extends AbstractAPI {
 	public $db;
 
 	function launch() {
+		$authViaJWT = $this->tryJWTAuth(['api:item:read']);
 		$method = (isset($_GET['method']) && !is_array($_GET['method'])) ? $_GET['method'] : '';
 
 		header('Content-type: application/json');
@@ -41,8 +42,8 @@ class ItemAPI extends AbstractAPI {
 			}
 		}
 
-		if (isset($_SERVER['PHP_AUTH_USER'])) {
-			if ($this->grantTokenAccess()) {
+		if (isset($_SERVER['PHP_AUTH_USER']) || $authViaJWT) {
+			if ($this->grantTokenAccess() || $authViaJWT) {
 				if (in_array($method, [
 					'getAppGroupedWork',
 					'getBasicItemInfo',

@@ -7,8 +7,38 @@ require_once ROOT_DIR . '/sys/SearchEntry.php';
 
 class ListAPI extends AbstractAPI {
 
+	/**
+	 * Get list of write operations for List API
+	 * @return array
+	 */
+	protected function getWriteOperations(): array {
+		return [
+			'createList',
+			'deleteList',
+			'editList',
+			'addTitlesToList',
+			'removeTitlesFromList',
+			'clearListTitles',
+			'createListGroup',
+			'deleteListGroup',
+			'editListGroup',
+			'editListGroupParent'
+		];
+	}
+
+	/**
+	 * Get the write scope for List API
+	 * @return string
+	 */
+	protected function getWriteScope(): string {
+		return 'api:list:write';
+	}
+
 	function launch() {
 		$method = (isset($_GET['method']) && !is_array($_GET['method'])) ? $_GET['method'] : '';
+
+		$requiredScope = in_array($method, $this->getWriteOperations()) ? $this->getWriteScope() : 'api:list:read';
+		$authViaJWT = $this->tryJWTAuth([$requiredScope]);
 
 		global $activeLanguage;
 		if (isset($_GET['language'])) {
@@ -18,9 +48,9 @@ class ListAPI extends AbstractAPI {
 				$activeLanguage = $language;
 			}
 		}
-
-		if (isset($_SERVER['PHP_AUTH_USER'])) {
-			if ($this->grantTokenAccess()) {
+		
+		if (isset($_SERVER['PHP_AUTH_USER']) || $authViaJWT) {
+			if ($this->grantTokenAccess() || $authViaJWT) {
 				if (in_array($method, [
 					'getUserLists',
 					'getListTitles',
@@ -1174,6 +1204,11 @@ class ListAPI extends AbstractAPI {
 	 * @noinspection PhpUnused
 	 */
 	function createList() {
+		$writeError = $this->verifyJWTWriteAccess($this->getWriteScope());
+		if ($writeError) {
+			return $writeError;
+		}
+
 		[
 			$username,
 			$password,

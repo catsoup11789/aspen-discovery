@@ -4306,6 +4306,7 @@ class User extends DataObject {
 		$sections['primary_configuration']->addAction(new AdminAction('Account Profiles', 'Define how account information is loaded from the ILS.', '/Admin/AccountProfiles'), 'Administer Account Profiles');
 		$sections['primary_configuration']->addAction(new AdminAction('User Agents', 'Configure User Agents and block access to Aspen Discovery by User Agent.', '/Admin/UserAgents'), 'Administer User Agents');
 		$sections['primary_configuration']->addAction(new AdminAction('Two-Factor Authentication', 'Administer two-factor authentication settings', '/Admin/TwoFactorAuth'), 'Administer Two-Factor Authentication');
+		$sections['primary_configuration']->addAction(new AdminAction('API Access Tokens', 'Administer API access tokens', '/Admin/APIAccessTokens'), 'Administer API Access Tokens');
 
 		if (array_key_exists('Single sign-on', $enabledModules)) {
 			$sections['primary_configuration']->addAction(new AdminAction('Single Sign-on (SSO)', 'Administer single sign-on settings', '/Admin/SSOSettings'), 'Administer Single Sign-on');

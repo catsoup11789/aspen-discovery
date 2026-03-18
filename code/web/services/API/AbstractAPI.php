@@ -2,6 +2,7 @@
 
 abstract class AbstractAPI extends Action{
 	protected $context;
+	protected $token = null;
 	function __construct($context = 'external') {
 		parent::__construct(false);
 		$this->context = $context;
@@ -148,5 +149,128 @@ abstract class AbstractAPI extends Action{
 				'Events'
 			];
 		}
+	}
+
+	/**
+	 * Extracts the Bearer token from the Authorization header
+	 * @return string|null
+	 */
+	protected function getBearerToken(): ?string {
+		$headers = getallheaders();
+		if (!isset($headers['Authorization'])) {
+			return null;
+		}
+		if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+			return $matches[1];
+		}
+		return null;
+	}
+
+	/**
+	 * Validates a JWT token
+	 * @param $token
+	 * @param array $requiredScopes
+	 * @return bool
+	 */
+	protected function validateToken($token, array $requiredScopes = []): bool {
+		$parts = explode('.', $token);
+		if (count($parts) != 3) {
+			return false;
+		}
+		list($headerB64, $bodyB64, $signatureB64) = $parts;
+
+		$header = json_decode(base64_decode(strtr($headerB64, '-_', '+/')), true);
+		$payload = json_decode(base64_decode(strtr($bodyB64, '-_', '+/')), true);
+		$signature = base64_decode(strtr($signatureB64, '-_', '+/'));
+
+		if (!$header || $header['alg'] !== 'HS256') {
+			return false;
+		}
+
+		$dataToSign = $headerB64 . $bodyB64;
+
+
+		$expectedSignature = hash_hmac('sha256', $dataToSign, SystemVariables::getJwtKey(), true);
+
+		if (!hash_equals($signature, $expectedSignature)) {
+			return false;
+		}
+
+		if (isset($payload['exp']) && $payload['exp'] < time()) {
+			return false;
+		}
+
+		if (!empty($requiredScopes)) {
+			if (!isset($payload['scope'])) {
+				return false;
+			}
+
+			$tokenScopes = is_string($payload['scope']) ? explode(',', $payload['scope']) : $payload['scope'];
+			$tokenScopes = array_map('trim', $tokenScopes); // Remove any whitespace
+
+			foreach ($requiredScopes as $scope) {
+				if (!in_array($scope, $tokenScopes)) {
+					return false;
+				}
+			}
+		}
+
+		$this->token = $token;
+		return true;
+	}
+
+	/**
+	 * Check if the request is properly authenticated via JWT and required scopes
+	 * @param array $requiredScopes
+	 * @return bool
+	 */
+	protected function tryJWTAuth(array $requiredScopes = []): bool {
+		$token = $this->getBearerToken();
+		if ($token && $this->validateToken($token, $requiredScopes)) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Check if the current request is authenticated via JWT
+	 * @return bool
+	 */
+	protected function isJWTAuthenticated(): bool {
+		$token = $this->getBearerToken();
+		return $token !== null && $this->validateToken($token);
+	}
+
+	/**
+	 * Verify JWT has required write permissions for the given scope
+	 * @param string $writeScope The write scope to check (e.g., 'api:list:write')
+	 * @return array|null Returns error array if unauthorized, null if authorized
+	 */
+	protected function verifyJWTWriteAccess(string $writeScope): ?array {
+		if ($this->isJWTAuthenticated()) {
+			if (!$this->tryJWTAuth([$writeScope])) {
+				return [
+					'success' => false,
+					'message' => 'Insufficient permissions. Write access required for this operation.',
+				];
+			}
+		}
+		return null; // No JWT auth or authorized
+	}
+
+	/**
+	 * Get list of write operations for this API
+	 * @return array
+	 */
+	protected function getWriteOperations(): array {
+		return [];
+	}
+
+	/**
+	 * Get the appropriate JWT scope for write operations
+	 * @return string
+	 */
+	protected function getWriteScope(): string {
+		return 'api:write';
 	}
 }

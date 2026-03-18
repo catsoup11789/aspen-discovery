@@ -12422,6 +12422,38 @@ AspenDiscovery.Admin = (function () {
 			});
 			return false;
 		},
+
+		handleAPIScopeDependencies: function (element) {
+			const dependencies = {
+				'api:user:write': ['api:user:read'],
+				'api:list:write': ['api:list:read'],
+				'api:event:write': ['api:event:read'],
+				'api:community:write': ['api:community:read']
+			};
+
+			if (element.checked) {
+				const scope = element.value;
+
+				if (dependencies[scope]) {
+					dependencies[scope].forEach(function (dependency) {
+						const dependencyCheckbox = document.querySelector('input[value="' + dependency + '"]');
+						if (dependencyCheckbox && !dependencyCheckbox.checked) {
+							dependencyCheckbox.checked = true;
+						}
+					});
+				}
+			} else {
+				const scope = element.value;
+				for (const [writeScope, readDependencies] of Object.entries(dependencies)) {
+					if (readDependencies.includes(scope)) {
+						const writeScopeCheckbox = document.querySelector('input[value="' + writeScope + '"]');
+						if (writeScopeCheckbox && writeScopeCheckbox.checked) {
+							writeScopeCheckbox.checked = false;
+						}
+					}
+				}
+			}
+		}
 	};
 }(AspenDiscovery.Admin || {}));
 AspenDiscovery.Authors = (function () {

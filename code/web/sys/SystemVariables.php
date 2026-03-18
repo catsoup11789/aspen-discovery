@@ -58,7 +58,11 @@ class SystemVariables extends DataObject {
 	public $logFrequentCrons;
 	public $hooplaVersion;
 
+	public $jwtKey;
+	public $refreshJwtKey;
+
 	static $_objectStructure = [];
+
 	static function getObjectStructure(string $context = ''): array {
 		if (isset(self::$_objectStructure[$context]) && self::$_objectStructure[$context] !== null) {
 			return self::$_objectStructure[$context];
@@ -458,6 +462,22 @@ class SystemVariables extends DataObject {
 				'note' => 'Frequent jobs include: ' . implode(', ', $frequentJobs) . '.',
 				'default' => false,
 			],
+			'jwtKey' => [
+				'property' => 'jwtKey',
+				'type' => 'password',
+				'label' => 'JWT Key',
+				'description' => 'Key used to sign/verify API requests made with JWT',
+				'readOnly' => false,
+				'hideInLists' => true,
+			],
+			'refreshJwtKey' => [
+				'property' => 'refreshJwtKey',
+				'type' => 'checkbox',
+				'label' => 'Refresh JWT Key',
+				'description' => 'Check and save to generate a new JWT key.',
+				'note' => 'WARNING: This will invalidate all previously issued API Authentication Tokens',
+				'hideInLists' => true,
+			]
 		];
 
 		if (!UserAccount::isLoggedIn() || !UserAccount::getActiveUserObj()->isAspenAdminUser()) {
@@ -581,6 +601,24 @@ class SystemVariables extends DataObject {
 				}
 			}
 		}
+
+		if (empty($this->jwtKey)) {
+			$this->__set('jwtKey', bin2hex(random_bytes(32)));
+		}
+
+		if (!empty($this->refreshJwtKey)) {
+			$this->__set('jwtKey', bin2hex(random_bytes(32)));
+			unset($this->refreshJwtKey);
+		}
+
 		return parent::update($context);
+	}
+
+	public static function getJwtKey(): string {
+		$variables = new SystemVariables();
+		if ($variables->find(true)) {
+			return $variables->jwtKey;
+		}
+		return false;
 	}
 }

@@ -3,6 +3,7 @@ require_once ROOT_DIR . '/services/API/AbstractAPI.php';
 
 class EventAPI extends AbstractAPI {
 	function launch() {
+		$authViaJWT = $this->tryJWTAuth(['api:event:read']);
 		$method = (isset($_GET['method']) && !is_array($_GET['method'])) ? $_GET['method'] : '';
 
 		header('Content-type: application/json');
@@ -18,8 +19,8 @@ class EventAPI extends AbstractAPI {
 			}
 		}
 
-		if (isset($_SERVER['PHP_AUTH_USER'])) {
-			if ($this->grantTokenAccess()) {
+		if (isset($_SERVER['PHP_AUTH_USER']) || $authViaJWT) {
+			if ($this->grantTokenAccess() || $authViaJWT) {
 				if (in_array($method, [
 					'getEventDetails',
 					'saveEvent',

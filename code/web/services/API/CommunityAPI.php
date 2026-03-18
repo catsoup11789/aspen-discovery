@@ -4,6 +4,7 @@ require_once ROOT_DIR . '/services/API/AbstractAPI.php';
 
 class CommunityAPI extends AbstractAPI {
 	function launch() {
+		$authViaJWT = $this->tryJWTAuth(['api:community:read']);
 		$method = (isset($_GET['method']) && !is_array($_GET['method'])) ? $_GET['method'] : '';
 
 		global $activeLanguage;
@@ -16,7 +17,7 @@ class CommunityAPI extends AbstractAPI {
 		}
 
 		//Make sure the user can access the API based on the IP address
-		if (!IPAddress::allowAPIAccessForClientIP()) {
+		if (!IPAddress::allowAPIAccessForClientIP() || !$authViaJWT) {
 			$this->forbidAPIAccess();
 		}
 

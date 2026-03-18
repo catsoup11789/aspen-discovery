@@ -4,8 +4,9 @@ require_once ROOT_DIR . '/CatalogConnection.php';
 
 class FineAPI extends AbstractAPI {
 	function launch() {
+		$authViaJWT = $this->tryJWTAuth(['api:fine:read']);
 		//Make sure the user can access the API based on the IP address
-		if (!IPAddress::allowAPIAccessForClientIP()) {
+		if (!IPAddress::allowAPIAccessForClientIP() || !$authViaJWT) {
 			$this->forbidAPIAccess();
 		}
 

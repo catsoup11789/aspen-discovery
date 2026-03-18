@@ -130,6 +130,10 @@ abstract class Action
 	}
 
 	protected function grantTokenAccess() : bool {
+		if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])) {
+			return false;
+		}
+
 		$key1 = base64_decode($_SERVER['PHP_AUTH_USER']);
 		$key2 = base64_decode($_SERVER['PHP_AUTH_PW']);
 		if (empty($key1) || empty($key2)) {
