@@ -30,7 +30,7 @@ class APIAuthKeySetting extends DataObject {
 			],
 			'description' => [
 				'property' => 'description',
-				'type' => ($context === 'addNew' ? 'text' : 'label'),
+				'type' => 'text',
 				'label' => 'Name',
 				'maxLength' => 50,
 				'required' => true,
@@ -42,7 +42,7 @@ class APIAuthKeySetting extends DataObject {
 				'type' => 'label',
 				'label' => 'Token',
 				'note' => 'Auto generated token upon saving. This is the value that should be used in the Authorization header as a Bearer token when making API requests.',
-				'readonly' => false,
+				'readOnly' => ($context !== 'addNew'),
 				'hideInLists' => true,
 			],
 			'scopes' => [
@@ -60,10 +60,11 @@ class APIAuthKeySetting extends DataObject {
 			],
 			'expiresAt' => [
 				'property' => 'expiresAt',
-				'type' => ($context === 'addNew' ? 'date' : 'label'),
+				'type' => 'date',
 				'label' => 'Expires At',
 				'description' => 'The date this token will no longer be valid. Expiration date cannot be modified after token creation.',
 				'required' => true,
+				'readOnly' => ($context !== 'addNew'),
 			],
 			'createdAt' => [
 				'property' => 'createdAt',
