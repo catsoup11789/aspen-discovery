@@ -82,11 +82,13 @@ class APIAuthKeySetting extends DataObject {
 				'property' => 'lastUsedAt',
 				'type' => 'label',
 				'label' => 'Last Used',
+				'note' => 'Last time this token was used to make an API call.'
 			],
 			'numCalls' => [
 				'property' => 'numCalls',
 				'type' => 'label',
 				'label' => 'Number of calls',
+				'note' => 'Number of API calls made using this token.',
 			]
 		];
 
@@ -100,6 +102,13 @@ class APIAuthKeySetting extends DataObject {
 
 		self::$_objectStructure[$context] = $structure;
 		return self::$_objectStructure[$context];
+	}
+
+	public function getNumericColumnNames(): array {
+		return [
+			'userId',
+			'numCalls'
+		];
 	}
 
 	static function getScopeOptions(): array {
