@@ -3483,7 +3483,7 @@ class Koha extends AbstractIlsDriver {
 
 		if ($response) {
 			$holdResponse = $response['content'];
-			if ($response['code'] != 201) {
+			if ($response['code'] != 201 && $response['code'] != 204) {
 				if (isset($holdResponse['error'])){
 					$result['title'] = translate([
 						'text' => 'Hold frozen',
@@ -8724,6 +8724,7 @@ class Koha extends AbstractIlsDriver {
 						'text' => 'There was an error checking out this title.',
 						'isPublicFacing' => true,
 					]),
+					'itemNotFound' => false,
 				],
 				'itemData' => []
 			];
@@ -8877,6 +8878,7 @@ class Koha extends AbstractIlsDriver {
 						1 => $barcode,
 						'isPublicFacing' => true,
 					]);
+					$result['api']['itemNotFound'] = true;
 				}
 
 				$lookupItemResult->close();
