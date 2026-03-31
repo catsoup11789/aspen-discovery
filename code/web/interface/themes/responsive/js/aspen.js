@@ -5979,120 +5979,114 @@ jQuery.validator.addMethod("strongPassword", function(value, element) {
 
 	return '<ul class="password-error-list" style="margin-top:5px; margin-bottom:0; padding-left:1.25em; list-style-type:disc"><li>' + errors.join('</li><li>') + '</li></ul>';
 });
-AspenDiscovery.ToastNotifications = function() {
-	const debug = false; // Set to true to enable debug mode. true for dev only.
-	return {
+AspenDiscovery.ToastNotifications = (function () {
+  const debug = false;
+  const POLL_INTERVAL = 10000; // 10 seconds
+  let pollTimer = null;
 
-		/**
-		 * Listen to SSE (Server sent events)
-		 *
-		 * @param {String} args.eventSource
-		 * @param {String} args.eventName
-		 * @returns {boolean}
-		 */
-
-		listenToSSE: function(args) {
-			const eventSource = new EventSource(args.eventSource);
-
-			const closeEventSource = () => {
-				eventSource.close();
-			};
-			window.addEventListener('beforeunload', closeEventSource);
-
-			eventSource.addEventListener(args.eventName, e => {
-				const toastDataArray = JSON.parse(sessionStorage.getItem('toastDataArray')) || [];
-				const notificationAlreadyShown = toastDataArray.some(notification => notification.id === JSON.parse(e.data).id && notification.type === JSON.parse(e.data).type);
-				if (!notificationAlreadyShown || debug) {
-					toastDataArray.push(JSON.parse(e.data));
-					sessionStorage.setItem('toastDataArray', JSON.stringify(toastDataArray));
-					AspenDiscovery.ToastNotifications.showToast(JSON.parse(e.data));
-				}
-			})
-
-			eventSource.onclose = () => {
-				window.removeEventListener('beforeunload', closeEventSource);
-			};
-		},
-
-		/**
-		 * Show the toast notification
-		 *
-		 * Parameter SSEData must adhere to the following structure:
-		 * 
-		 * {
-		 *      id:    'my html id',
-		 *      title: 'toast title',
-		 *      body:  'toast body',
-		 *      link:  { href: 'url', text: 'link text' },
-		 *      icon:  'fa-icon'
-		 * }
-		 * 
-		 * @param {Object} SSEData
-		 */
-
-		showToast: function(SSEData) {
-			const toast = document.createElement('div');
-			toast.id = SSEData.id;
-			toast.className = 'toast-notification';
-			toast.innerHTML = `
-				<div class="toast-column-left">
-					<i class="fas ${SSEData.icon} toast-notification-icon"></i>
-				</div>
-				<div class="toast-column-right">
-					<p class="toast-message-title">${SSEData.title}</p>
-					<p class="toast-message-subtitle">${SSEData.body}</p>
-					${SSEData.link ? `<a class="toast-message-link" href="${SSEData.link.href}">${SSEData.link.text}</a>` : ''}
-					<button class="toast-close">×</button>
-				</div>
-			`;
-			const margin_spacing = 8;
-			const toast_height = 95;
-
-			let toast_bottom = margin_spacing;
-			
-			let adjustPosition = false;
-			if ($(document).find('.toast-notification').length == 3) {
-				$('.toast-notification').first().remove();
-				toast_bottom = (toast_height * 2) + (margin_spacing * 3);
-				adjustPosition = true;
-			}else if ($(document).find('.toast-notification').length == 1) {
-				toast_bottom = toast_height + (margin_spacing * 2);
-			}else if ($(document).find('.toast-notification').length == 2) {
-				toast_bottom = (toast_height * 2) + (margin_spacing * 3);
+  return {
+    /**
+     * Start polling for toast notifications
+     */
+    startPolling: function (args) {
+      const fetchNotifications = () => {
+        fetch(args.endpoint)
+          .then((response) => response.json())
+          .then((data) => {
+			if (data.status === "stop") {
+				clearInterval(pollTimer);
+				return;
 			}
+            if (data.status === "success" && data.notifications) {
+              data.notifications.forEach((notification) => {
+                this.processNotification(notification);
+              });
+            }
+          })
+          .catch((err) => console.error("Polling error:", err));
+      };
+      fetchNotifications();
+      pollTimer = setInterval(fetchNotifications, POLL_INTERVAL);
+    },
 
-			if( adjustPosition ){
-				let firstToast = $('.toast-notification').first()[0];
-				if(firstToast.style){
-					firstToast.style.bottom = parseInt(firstToast.style.bottom) - (toast_height + (margin_spacing)) + 'px';
-				}
-				let secondToast = $('.toast-notification').eq(1)[0];
-				if(secondToast.style){
-					secondToast.style.bottom = parseInt(secondToast.style.bottom) - (toast_height + (margin_spacing)) + 'px';
-				}
+    processNotification: function (notification) {
+      const toastDataArray =
+        JSON.parse(sessionStorage.getItem("toastDataArray")) || [];
+
+      const alreadyShown = toastDataArray.some((n) => n.id === notification.id);
+      if (!alreadyShown || debug) {
+        toastDataArray.push(notification);
+        if (toastDataArray.length > 20) toastDataArray.shift();
+
+        sessionStorage.setItem(
+          "toastDataArray",
+          JSON.stringify(toastDataArray)
+        );
+        this.showToast(notification);
+      }
+    },
+
+	showToast: function(toastData) {
+		const toast = document.createElement('div');
+		toast.id = toastData.id;
+		toast.className = 'toast-notification';
+		toast.innerHTML = `
+			<div class="toast-column-left">
+				<i class="fas ${toastData.icon} toast-notification-icon"></i>
+			</div>
+			<div class="toast-column-right">
+				<p class="toast-message-title">${toastData.title}</p>
+				<p class="toast-message-subtitle">${toastData.body}</p>
+				${toastData.link ? `<a class="toast-message-link" href="${toastData.link.href}">${toastData.link.text}</a>` : ''}
+				<button class="toast-close">×</button>
+			</div>
+		`;
+		const margin_spacing = 8;
+		const toast_height = 95;
+
+		let toast_bottom = margin_spacing;
+
+		let adjustPosition = false;
+		if ($(document).find('.toast-notification').length == 3) {
+			$('.toast-notification').first().remove();
+			toast_bottom = (toast_height * 2) + (margin_spacing * 3);
+			adjustPosition = true;
+		}else if ($(document).find('.toast-notification').length == 1) {
+			toast_bottom = toast_height + (margin_spacing * 2);
+		}else if ($(document).find('.toast-notification').length == 2) {
+			toast_bottom = (toast_height * 2) + (margin_spacing * 3);
+		}
+
+		if( adjustPosition ){
+			let firstToast = $('.toast-notification').first()[0];
+			if(firstToast.style){
+				firstToast.style.bottom = parseInt(firstToast.style.bottom) - (toast_height + (margin_spacing)) + 'px';
 			}
+			let secondToast = $('.toast-notification').eq(1)[0];
+			if(secondToast.style){
+				secondToast.style.bottom = parseInt(secondToast.style.bottom) - (toast_height + (margin_spacing)) + 'px';
+			}
+		}
 
-			Object.assign(toast.style, {
-				bottom: toast_bottom + 'px',
-				right: margin_spacing+'px',
-				height: toast_height + 'px'
-			});
-			document.body.appendChild(toast);
-			const closeButton = toast.querySelector('.toast-close');
-			closeButton.addEventListener('click', () => {
-				toast.style.opacity = 0;
-				setTimeout(() => {
-				toast.remove();
-				}, 300);
-			});
+		Object.assign(toast.style, {
+			bottom: toast_bottom + 'px',
+			right: margin_spacing+'px',
+			height: toast_height + 'px'
+		});
+		document.body.appendChild(toast);
+		const closeButton = toast.querySelector('.toast-close');
+		closeButton.addEventListener('click', () => {
+			toast.style.opacity = 0;
 			setTimeout(() => {
-				toast.style.opacity = 1;
-			}, 10);
-		},
-	}
-	
-}(AspenDiscovery.ToastNotifications || {});
-
+			toast.remove();
+			}, 300);
+		});
+		setTimeout(() => {
+			toast.style.opacity = 1;
+		}, 10);
+	},
+  };
+})();
 AspenDiscovery.Account = (function () {
 
 	// noinspection JSUnusedGlobalSymbols
@@ -7299,13 +7293,14 @@ AspenDiscovery.Account = (function () {
 			}).fail(AspenDiscovery.ajaxFail);
 		},
 
-		freezeHold: function (patronId, recordId, holdId, promptForReactivationDate, caller) {
+		freezeHold: function (patronId, recordId, holdId, promptForReactivationDate, isAlreadyFrozen, caller) {
 			AspenDiscovery.loadingMessage();
 			var url = Globals.path + '/MyAccount/AJAX';
 			var params = {
 				patronId: patronId
 				, recordId: recordId
 				, holdId: holdId
+				, isAlreadyFrozen:isAlreadyFrozen
 			};
 			if (promptForReactivationDate) {
 				//Prompt the user for the date they want to reactivate the hold
@@ -7340,6 +7335,7 @@ AspenDiscovery.Account = (function () {
 				, recordId: $('#recordId').val()
 				, holdId: $("#holdId").val()
 				, reactivationDate: $("#reactivationDate").val()
+				, isAlreadyFrozen: $("#isAlreadyFrozen").val()
 			};
 			var url = Globals.path + '/MyAccount/AJAX';
 			AspenDiscovery.showMessage(popUpBoxTitle, "Updating your hold.  This may take a minute.");
@@ -12422,6 +12418,128 @@ AspenDiscovery.Admin = (function () {
 			});
 			return false;
 		},
+		configureRateLimits: function () {
+			var url = Globals.path + "/OAuth2/RateLimitingAJAX";
+			var params = {
+				method: 'configureRateLimits'
+			};
+
+			$.getJSON(url, params)
+				.done(function (data) {
+					if (data.success) {
+						AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
+					} else {
+						AspenDiscovery.showMessage("Error", data.message);
+					}
+				})
+				.fail(function () {
+					AspenDiscovery.showMessage("Error", "An error occurred while retrieving rate limit configuration.");
+				});
+
+			return false;
+		},
+		updateOAuth2GrantType: function () {
+			var clientType = $("#client_typeSelect").val();
+			// Show/hide supports_openid and redirect_uri fields based on client_type
+			if (clientType === "web_application") {
+				$("#propertyRowsupports_openid").show();
+				$("#propertyRowredirect_uri").show();
+			} else {
+				$("#propertyRowsupports_openid").hide();
+				$("#propertyRowredirect_uri").hide();
+				$("#propertyRowallowed_claims").hide();
+			}
+		},
+		updateOAuth2SupportsOpenId: function () {
+			var supportsOpenId = $("#supports_openid").is(":checked");
+			if (supportsOpenId) {
+				$("#propertyRowallowed_claims").show();
+				$("#propertyRowscopes").hide();
+			} else {
+				$("#propertyRowallowed_claims").hide();
+				$("#propertyRowscopes").show();
+			}
+		},
+		updateOAuth2Scopes: function (element) {
+			const dependencies = {
+				'user:write': ['user:read'],
+				'list:write': ['list:read'],
+				'event:write': ['event:read'],
+				'community:write': ['community:read'],
+			};
+
+			if (element.checked) {
+				const scope = element.value;
+
+				if (dependencies[scope]) {
+					dependencies[scope].forEach(function (dependency) {
+						const dependencyCheckbox = document.querySelector('input[value="' + dependency + '"]');
+						if (dependencyCheckbox && !dependencyCheckbox.checked) {
+							dependencyCheckbox.checked = true;
+						}
+					});
+				}
+			} else {
+				const scope = element.value;
+				for (const [writeScope, readDependencies] of Object.entries(dependencies)) {
+					if (readDependencies.includes(scope)) {
+						const writeScopeCheckbox = document.querySelector('input[value="' + writeScope + '"]');
+						if (writeScopeCheckbox && writeScopeCheckbox.checked) {
+							writeScopeCheckbox.checked = false;
+						}
+					}
+				}
+			}
+		},
+		maskOAuth2ClientSecret: function () {
+			var clientSecretField = $("#client_secret");
+
+			if (clientSecretField.length === 0) {
+				return;
+			}
+
+			var originalSecret = clientSecretField.text().trim();
+			if (!originalSecret || originalSecret.match(/^\*+$/)) {
+				return;
+			}
+
+			clientSecretField.data('actual-secret', originalSecret);
+
+			var maskedSecret = Array(Math.min(originalSecret.length + 1, 33)).join('*');
+			clientSecretField.text(maskedSecret);
+			clientSecretField.addClass('masked');
+			clientSecretField.css({
+				'font-family': 'monospace',
+				'word-break': 'break-all'
+			});
+
+			var toggleButton = $('<button type="button" class="btn btn-sm btn-default" id="toggleClientSecret" title="Show or hide the client secret"><i class="fas fa-eye"></i> Show Secret</button>');
+			clientSecretField.after(toggleButton);
+			$("#toggleClientSecret").on("click", function (e) {
+				e.preventDefault();
+				AspenDiscovery.Admin.toggleMaskOAuth2ClientSecret();
+			});
+		},
+		toggleMaskOAuth2ClientSecret: function () {
+			var clientSecretField = $("#client_secret");
+			var toggleButton = $("#toggleClientSecret");
+			var isVisible = clientSecretField.data('visible') === true;
+
+			if (isVisible) {
+				var actualSecret = clientSecretField.data('actual-secret');
+				var maskedSecret = Array(Math.min(actualSecret.length + 1, 33)).join('*');
+				clientSecretField.text(maskedSecret);
+				clientSecretField.addClass('masked').removeClass('unmasked');
+				toggleButton.html('<i class="fas fa-eye"></i> Show Secret');
+				clientSecretField.data('visible', false);
+			} else {
+				var actualSecret = clientSecretField.data('actual-secret');
+				clientSecretField.text(actualSecret);
+				clientSecretField.addClass('unmasked').removeClass('masked');
+				toggleButton.html('<i class="fas fa-eye-slash"></i> Hide Secret');
+				clientSecretField.data('visible', true);
+			}
+		}
 	};
 }(AspenDiscovery.Admin || {}));
 AspenDiscovery.Authors = (function () {
@@ -18894,7 +19012,7 @@ AspenDiscovery.Record = (function () {
 					} else if (data.needsIllRequest) {
 						AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
 					} else {
-						AspenDiscovery.showMessage(data.title, data.message, false, data.autologout);
+						AspenDiscovery.showMessageWithButtons(data.title, data.message, data.modalButtons, data.autologout);
 						var existingButton = $("#onHoldAction" + id);
 						if (existingButton.length === 0) {
 							$(data.viewHoldsAction).insertBefore('#actionButton' + id);
@@ -19057,7 +19175,7 @@ AspenDiscovery.Record = (function () {
 						AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
 					} else {
 						AspenDiscovery.Record.volumeHoldInProgress = false;
-						AspenDiscovery.showMessage(data.title, data.message, false, autoLogOut);
+						AspenDiscovery.showMessageWithButtons(data.title, data.message, data.modalButtons, autoLogOut);
 						AspenDiscovery.Account.loadMenuData();
 					}
 				} else {
@@ -19343,6 +19461,15 @@ AspenDiscovery.Record = (function () {
 				AspenDiscovery.showMessage(data.title, data.message);
 			}).fail(AspenDiscovery.ajaxFail);
 			return false;
+		},
+
+		getLargeCover: function (recordId){
+			var url = Globals.path + '/Record/' + recordId + '/AJAX?method=getLargeCover';
+			$.getJSON(url, function (data){
+					AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.modalButtons);
+				}
+			);
+			return false;
 		}
 	};
 }(AspenDiscovery.Record || {}));
@@ -19545,7 +19672,8 @@ AspenDiscovery.Searches = (function(){
 			}
 		})
 	});
-	return{
+	return {
+		_advFacetCache: {},
 		searchGroups: [],
 		curPage: 1,
 		displayMode: 'list', // default display Mode for results
@@ -19943,6 +20071,88 @@ AspenDiscovery.Searches = (function(){
 					$("#facetSearchResults").html(data.message);
 				}
 			});
+		},
+
+		showAdvancedSearchFacetPopup: function (facetName) {
+			var cache = AspenDiscovery.Searches._advFacetCache;
+			if (cache[facetName]) {
+				var data = cache[facetName];
+				AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.buttons);
+				return false;
+			}
+			var url = Globals.path + '/Search/AJAX?method=getAdvancedSearchFacetPopup&facetName=' + encodeURIComponent(facetName);
+			$.getJSON(url, function (data) {
+				if (data.success === true) {
+					cache[facetName] = data;
+					AspenDiscovery.showMessageWithButtons(data.title, data.modalBody, data.buttons);
+				} else {
+					AspenDiscovery.showMessage(data.title, data.message);
+				}
+			});
+			return false;
+		},
+
+		onAdvancedFacetSelectChange: function (selectEl) {
+			var $select = aspenJQ(selectEl);
+			var val     = $select.val();
+			if (val === '__browse__') {
+				$select.val($select.data('prevVal') || '');
+				var facetName = selectEl.id.replace('facet-select-', '');
+				AspenDiscovery.Searches.showAdvancedSearchFacetPopup(facetName);
+			} else {
+				$select.data('prevVal', val);
+			}
+		},
+
+		searchAdvancedFacetValuesKeyDown: function (e) {
+			if (e.keyCode === 9) {
+				AspenDiscovery.Searches.searchAdvancedFacetValues();
+			} else if (e.keyCode === 10 || e.keyCode === 13) {
+				e.preventDefault();
+				AspenDiscovery.Searches.searchAdvancedFacetValues();
+			}
+			return false;
+		},
+
+		searchAdvancedFacetValues: function () {
+			$("#advFacetSearchResultsPopularHelp").hide();
+			$("#advFacetSearchResultsLoading").show();
+			$("#advFacetSearchResults").html("");
+			var facetName   = $("#advFacetName").val();
+			var searchTerm  = $("#advFacetSearchTerm").val();
+			var url = Globals.path + '/Search/AJAX';
+			var params = {
+				'method':     'searchAdvancedFacetTerms',
+				'facetName':  facetName,
+				'searchTerm': searchTerm
+			};
+			$.getJSON(url, params, function (data) {
+				$("#advFacetSearchResultsLoading").hide();
+				if (data.success === true) {
+					$("#advFacetSearchResults").html(data.facetResults);
+				} else {
+					$("#advFacetSearchResults").html(data.message);
+				}
+			});
+		},
+
+		setAdvancedSearchFacetValue: function (el) {
+			var $el         = aspenJQ(el);
+			var filterValue = $el.attr('data-filter');
+			var displayText = $el.attr('data-display');
+			var facetName   = $el.attr('data-facet');
+			var $select = aspenJQ('#facet-select-' + facetName);
+			if ($select.length === 0) {
+				aspenJQ('#modalDialog').modal('hide');
+				return;
+			}
+			$select.val(filterValue);
+			if ($select.val() !== filterValue) {
+				$select.append(aspenJQ('<option>', {value: filterValue, text: displayText}));
+				$select.val(filterValue);
+			}
+			$select.data('prevVal', filterValue);
+			aspenJQ('#modalDialog').modal('hide');
 		}
 	}
 }(AspenDiscovery.Searches || {}));
@@ -20461,6 +20671,28 @@ AspenDiscovery.WebBuilder = function () {
 	// noinspection JSUnusedGlobalSymbols
 	return {
 		editors: [],
+		// Track placard views (whenever shown to a user, regardless of whether they interact with it)
+		trackPlacardView: function(placardId) {
+			const url = Globals.path + '/WebBuilder/AJAX';
+			const params = {
+				method: 'trackPlacardUsage',
+				id: placardId,
+				operation: 'view'
+			};
+			$.getJSON(url, params);
+		},
+
+		// Track placard clicks
+		trackPlacardClick: function(placardId, authType) {
+			const url = Globals.path + '/WebBuilder/AJAX';
+			const params = {
+				method: 'trackPlacardUsage',
+				id: placardId,
+				operation: 'click',
+				authType: authType
+			};
+			$.getJSON(url, params);
+		},
 		saveLinkedObjCallback: function() {},
 
 		getPortalCellValuesForSource: function () {
@@ -20583,6 +20815,15 @@ AspenDiscovery.WebBuilder = function () {
 					AspenDiscovery.showMessage('Sorry', data.message);
 				}
 			});
+		},
+
+		// Call this whenever placards are rendered/shown.
+		renderPlacards: function(placardIds) {
+			if (Array.isArray(placardIds)) {
+				placardIds.forEach(function(id) {
+					AspenDiscovery.WebBuilder.trackPlacardView(id);
+				});
+			}
 		},
 
 		checkLinkedObject: function (submitForm) {
@@ -20942,6 +21183,16 @@ AspenDiscovery.WebBuilder = function () {
 			}).fail(AspenDiscovery.ajaxFail);
 
 			return false;
+		},
+
+		placardClickHandler: function(placardId) {
+			let authType = "none";
+			if (Globals.loggedIn) {
+				authType = "user";
+			} else if (Globals.inLibrary) {
+				authType = "library";
+			}
+			AspenDiscovery.WebBuilder.trackPlacardClick(placardId, authType);
 		},
 
 		getAddQuickPollOptionForm: function (pollId) {
@@ -21957,23 +22208,6 @@ AspenDiscovery.CommunityEngagement = function() {
 			}
 			
 		},
-		getLibraryUsers: function (callback) {
-			var url = Globals.path + "/CommunityEngagement/AJAX";
-			var params = {
-				method: 'getLibraryUsers',
-			};
-
-			$.getJSON(url, params, function (data) {
-				if (data.success && data.users) {
-					callback(data.users);
-				} else{
-					callback([]);
-				}
-			}).fail (function(jqXHR, textStatus, errorThrown) {
-				AspenDiscovery.ajaxFail(jqXHR, textStatus, errorThrown);
-				callback([]);
-			});
-		},
 		displaySearchResults: function (users) {
 			const resultsDiv = document.getElementById('user_search_results');
 
@@ -22000,30 +22234,48 @@ AspenDiscovery.CommunityEngagement = function() {
 			const resultsDiv = document.getElementById('user_search_results');
 			const hiddenInput = document.getElementById('selected_user_id');
 
+			// 1. Clear the debounce timer
+			clearTimeout(this.searchTimer);
+
+			// 2. Abort any existing AJAX request
+			if (this.currentSearchRequest) {
+				this.currentSearchRequest.abort();
+			}
+
 			if (query.length < 2) {
 				resultsDiv.style.display = 'none';
 				hiddenInput.value = '';
 				return;
 			}
 
-			hiddenInput.value = '';
-			const url = Globals.path + '/CommunityEngagement/AJAX';
-			const params = {
-				method: 'searchUsers',
-				query: query
-			};
+			// 3. Set the debounce timer (300ms)
+			this.searchTimer = setTimeout(() => {
 
-			$.getJSON(url, params, function(data) {
-				if (data.success) {
-					AspenDiscovery.CommunityEngagement.displaySearchResults(data.users);
-				} else {
-					resultsDiv.style.display = 'none';
-					console.warn('No users found or error in AJAX call');
-				}
-			}).fail(function(jqXHR, textStatus, errorThrown) {
-				console.error('AJAX Error: ', textStatus, errorThrown);
-			});
-		},
+                resultsDiv.innerHTML = '<div style="padding: 10px; color: #666;">Searching...</div>';
+                resultsDiv.style.display = 'block';
+
+				hiddenInput.value = '';
+				const url = Globals.path + '/CommunityEngagement/AJAX';
+				const params = {
+					method: 'searchUsers',
+					query: query
+				};
+
+				// 4. Store the AJAX object to allow aborting
+				this.currentSearchRequest = $.getJSON(url, params, function(data) {
+					if (data.success) {
+						AspenDiscovery.CommunityEngagement.displaySearchResults(data.users);
+					} else {
+						resultsDiv.style.display = 'none';
+					}
+				}).fail(function(jqXHR, textStatus, errorThrown) {
+					// Ignore manual aborts, log real errors
+					if (textStatus !== 'abort') {
+						console.error('AJAX Error: ', textStatus, errorThrown);
+					}
+				});
+			}, 300);
+        },
 		loadCheckoutsForUser: function(userId, callback) {
 			let url = Globals.path + "/MyAccount/AJAX";
 			var params = {
@@ -22232,17 +22484,6 @@ AspenDiscovery.CommunityEngagement = function() {
 				success: function (data) {
 					if (data.success) {
 						AspenDiscovery.showMessage(data.title, data.message);
-						AspenDiscovery.CommunityEngagement.getLibraryUsers(function(users) {
-							if ($('#user_id').length > 0) {
-								const $dropdown = $('#user_id');
-								const currentValue = $dropdown.val();
-								$dropdown.empty().append('<option value="">-</option>');
-								users.forEach(function(user) {
-									const selected = user.id == currentValue ? 'selected' : '';
-									$dropdown.append(`<option value="${user.id}" ${selected}>${user.displayName}</option>`);
-								});
-							}
-						});
 						$('#addUserByBarcodeModal').modal('hide');
 						$('#newUserBarcode').val('');
 					} else {
