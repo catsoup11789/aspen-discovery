@@ -57,6 +57,114 @@ function getUpdates26_04_00(): array {
 			],
 		],
 		//list_transfer_permission
+		'Add OAuth2 Server' => [
+			'title' => 'Add OAuth2 Server',
+			'description' => 'Add OAuth2 Server',
+			'continueOnError' => false,
+			'sql' => [
+				"CREATE TABLE IF NOT EXISTS oauth2_clients (
+				id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				name VARCHAR(255) NOT NULL,
+				client_id VARCHAR(255) NOT NULL UNIQUE,
+				client_secret VARCHAR(255) NOT NULL,
+				client_type ENUM('web_application', 'native_application', 'service_application') DEFAULT 'web_application',
+				scopes TEXT,
+				redirect_uri VARCHAR(2000),
+				is_active TINYINT(1) DEFAULT 1,
+				created_by INT,
+				created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+				INDEX idx_client_id (client_id),
+				INDEX idx_client_type (client_type),
+				INDEX idx_is_active (is_active),
+				INDEX idx_created_by (created_by)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+			
+			CREATE TABLE IF NOT EXISTS oauth2_access_tokens (
+				id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				token_id VARCHAR(100) NOT NULL UNIQUE,
+				user_id INT,
+				client_id VARCHAR(255) NOT NULL,
+				scopes TEXT,
+				revoked TINYINT(1) DEFAULT 0,
+				expires_at TIMESTAMP NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_token_id (token_id),
+				INDEX idx_user_id (user_id),
+				INDEX idx_client_id (client_id),
+				INDEX idx_revoked (revoked),
+				INDEX idx_expires_at (expires_at),
+				FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+			
+			CREATE TABLE IF NOT EXISTS oauth2_auth_codes (
+				id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				code_id VARCHAR(100) NOT NULL UNIQUE,
+				user_id INT,
+				client_id VARCHAR(255) NOT NULL,
+				scopes TEXT,
+				redirect_uri VARCHAR(2000),
+				code_challenge VARCHAR(128),
+				code_challenge_method VARCHAR(10),
+				revoked TINYINT(1) DEFAULT 0,
+				expires_at TIMESTAMP NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_code_id (code_id),
+				INDEX idx_user_id (user_id),
+				INDEX idx_client_id (client_id),
+				INDEX idx_revoked (revoked),
+				INDEX idx_expires_at (expires_at),
+				FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+			
+			CREATE TABLE IF NOT EXISTS oauth2_refresh_tokens (
+				id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				token_id VARCHAR(100) NOT NULL UNIQUE,
+				access_token_id VARCHAR(100) NOT NULL,
+				revoked TINYINT(1) DEFAULT 0,
+				expires_at TIMESTAMP NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_token_id (token_id),
+				INDEX idx_access_token_id (access_token_id),
+				INDEX idx_revoked (revoked),
+				INDEX idx_expires_at (expires_at)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+			
+			CREATE TABLE IF NOT EXISTS oauth2_rate_limits (
+				id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				client_id VARCHAR(255) NOT NULL,
+				ip_address VARCHAR(45) NOT NULL,
+				endpoint VARCHAR(100) NOT NULL,
+				request_count INT DEFAULT 0,
+				window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+				UNIQUE KEY unique_rate_limit (client_id, ip_address, endpoint),
+				INDEX idx_client_id (client_id),
+				INDEX idx_endpoint (endpoint),
+				INDEX idx_window_start (window_start),
+				INDEX idx_last_request (last_request)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+			
+			INSERT IGNORE INTO permissions (sectionName, name, requiredModule, weight, description) VALUES
+			('System Administration', 'Administer OAuth2', '', 325, 'Controls if the user can manage OAuth2 clients and view OAuth2 settings.');
+			
+			ALTER TABLE oauth2_access_tokens ADD INDEX idx_user_client (user_id, client_id);
+			ALTER TABLE oauth2_auth_codes ADD INDEX idx_user_client (user_id, client_id);
+			"
+			]
+		],
+		//Add OAuth2 Server
+		'Add OpenID Connect' => [
+			'title' => 'Add OpenID Connect',
+			'description' => 'Add OpenID Connect support to OAuth2',
+			'continueOnError' => false,
+			'sql' => [
+				"ALTER TABLE oauth2_clients ADD COLUMN supports_openid TINYINT(1) DEFAULT 0;
+				ALTER TABLE oauth2_clients ADD COLUMN allowed_claims TEXT;
+				ALTER TABLE oauth2_clients ADD INDEX idx_supports_openid (supports_openid);"
+			]
+		],
+		//Add OpenID Connect
 
 		//kodi
 		'include_econtent_in_shelf_locations_facet' => [
@@ -73,6 +181,13 @@ function getUpdates26_04_00(): array {
 				"ALTER TABLE cloudsource_setting ADD COLUMN bypassAspenCloudSourcePage TINYINT(1) DEFAULT 0"
 			]
 		], //bypass_aspen_cloudsource_page
+		'where_is_it_display_style' => [
+			'title' => 'Where Is It Display Style',
+			'description' => 'Add where is it display style to grouped work display settings',
+			'sql' => [
+				"ALTER TABLE grouped_work_display_settings ADD COLUMN whereIsItDisplayStyle TINYINT(1) DEFAULT 1"
+			]
+		], //where_is_it_display_style
 
 		//yanjun
 
@@ -105,6 +220,15 @@ function getUpdates26_04_00(): array {
 				"ALTER TABLE sendgrid_settings ADD COLUMN baseUrl VARCHAR(255) DEFAULT null",
 			],
 		], //migrate_sendgrid_url_to_settings
+
+		//pedro
+		'drop_control_display_of_user_dropdown_in_community_engagement_admin_view' => [
+			'title' => 'Drop Control User Select Type in Admin View',
+			'description' => 'Drop options for how to select users in the admin view  (only search exists now)',
+			'sql' => [
+				"ALTER TABLE library DROP COLUMN communityEngagementAdminUserSelect",
+			],
+		], //control_display_of_user_dropdown_in_community_engagement_admin_view
 
 		//mark j
 		'add_pageViewsFromPlacard_to_web_builder_resource_usage' => [
@@ -147,9 +271,53 @@ function getUpdates26_04_00(): array {
 		//tomas
 
 		// stephen
+			'change_user_page_defaults.pageSize_to_varchar' => [
+			'title' => 'Change user_page_defaults.pageSize column to varchar',
+			'description' => 'Modifies the pageSize column to allow the value "all"',
+			'continueOnError' => false,
+			'sql' => [
+				'ALTER TABLE user_page_defaults CHANGE COLUMN pageSize pageSize VARCHAR(10) NULL',
+			],
+		], //change_user_page_defaults.pageSize_to_varchar
+
+
+		//pedro
+		'update_community_engagement_schema_v2' => [
+			'title' => 'Normalize Community Engagement to allow multiple milestone/extra credit instances',
+			'description' => 'Shifts progress tracking from (Campaign+Item) ID pairs to a single Junction ID (Instance) to allow duplicate items within one campaign.',
+			'sql' => [
+				// --- 1. MILESTONES: Add the new instance-based foreign keys ---
+				"ALTER TABLE `ce_campaign_milestone_users_progress` ADD COLUMN `ce_campaign_milestone_id` int(11) DEFAULT NULL AFTER `ce_milestone_id`",
+				"ALTER TABLE `ce_campaign_milestone_progress_entries` ADD COLUMN `ce_campaign_milestone_id` int(11) DEFAULT NULL AFTER `ce_milestone_id`",
+				"ALTER TABLE `ce_user_completed_milestones` ADD COLUMN `ce_campaign_milestone_id` int(11) DEFAULT NULL AFTER `milestoneId`",
+
+				// --- 2. MILESTONES: Data Migration (Map coordinates to unique instance IDs) ---
+				"UPDATE `ce_campaign_milestone_users_progress` up
+					JOIN `ce_campaign_milestones` cm ON up.ce_campaign_id = cm.campaignId AND up.ce_milestone_id = cm.milestoneId
+					SET up.ce_campaign_milestone_id = cm.id",
+				"UPDATE `ce_campaign_milestone_progress_entries` pe
+					JOIN `ce_campaign_milestones` cm ON pe.ce_campaign_id = cm.campaignId AND pe.ce_milestone_id = cm.milestoneId
+					SET pe.ce_campaign_milestone_id = cm.id",
+				"UPDATE `ce_user_completed_milestones` ucm
+					JOIN `ce_campaign_milestones` cm ON ucm.campaignId = cm.campaignId AND ucm.milestoneId = cm.milestoneId
+					SET ucm.ce_campaign_milestone_id = cm.id",
+
+				// --- 3. MILESTONES: Cleanup and Constraint Enforcement ---
+				"ALTER TABLE `ce_campaign_milestone_users_progress`
+					DROP COLUMN `ce_campaign_id`,
+					DROP COLUMN `ce_milestone_id`",
+				"ALTER TABLE `ce_campaign_milestone_progress_entries`
+					DROP COLUMN `ce_campaign_id`,
+					DROP COLUMN `ce_milestone_id`",
+				"ALTER TABLE `ce_user_completed_milestones`
+					DROP COLUMN `campaignId`,
+					DROP COLUMN `milestoneId`",
+				"ALTER TABLE `ce_milestone` DROP COLUMN `campaignId`",
+
+			]
+		],
 
 		//other
-
 
 	];
 }
