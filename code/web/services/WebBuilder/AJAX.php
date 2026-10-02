@@ -522,22 +522,25 @@ class WebBuilder_AJAX extends JSON_Action {
 
 		//Save Linked Placard
 		require_once ROOT_DIR . '/sys/LocalEnrichment/Placard.php';
-		$fileType = substr($_REQUEST['image'], 0, -3);
-		$fileType = match ($fileType) {
-			'gif' => ".gif",
-			'png' => ".png",
-			'svg' => ".svg",
-			default => ".jpg",
-		};
 		$placard = new Placard();
 		$placard->sourceId = $_REQUEST['objectId'];
 		if ($placard->find(true)) {
 			if ($_REQUEST['doFullSave'] == "true"){
-				$placard->title = $_REQUEST['objectName'];
-				$placard->image = "web_resource_image_".$_REQUEST['objectId'].$fileType;
-				$placard->link = $_REQUEST['url'];
-				$placard->body = $_REQUEST['body'];
-				$placard->isCustomized = 0;
+				require_once ROOT_DIR . '/sys/WebBuilder/WebResource.php';
+				$webResource = new WebResource();
+				$webResource->id = $_REQUEST['objectId'];
+				if ($webResource->find(true) && $webResource->canActiveUserEdit()) {
+					$placard->title = $_REQUEST['objectName'];
+					$placard->image = $webResource->logo;
+					$placard->link = $_REQUEST['url'];
+					$placard->body = $_REQUEST['body'];
+					$placard->isCustomized = 0;
+				}else{
+					return [
+						'success' => false,
+						'message' => 'Could not find resource to update from.'
+					];
+				}
 			} else {
 				if ($placard->title != $_REQUEST['objectName'] || $placard->image != $_REQUEST['image'] || $placard->link != $_REQUEST['url'] || $placard->body != $_REQUEST['body']) {
 					$placard->isCustomized = 1;
@@ -578,24 +581,10 @@ class WebBuilder_AJAX extends JSON_Action {
 				$image->generateLargeSize = true;
 				$image->generateMediumSize = true;
 				$image->generateSmallSize = true;
-				$destFileName = $file['name'];
-				$destFolder = $structure['fullSizePath']['path'];
-				if (!is_dir($destFolder)) {
-					if (!mkdir($destFolder, 0755, true)) {
-						$result['message'] = 'Could not create directory to upload files';
-						if (IPAddress::showDebuggingInformation()) {
-							$result['message'] .= " " . $destFolder;
-						}
-					}
-				}
-				$destFullPath = $destFolder . '/' . $destFileName;
-				if (file_exists($destFullPath)) {
-					$image->find(true);
-				}
-
 				$image->title = $file['name'];
-				$copyResult = copy($file["tmp_name"], $destFullPath);
-				if ($copyResult) {
+				$image->insert();
+				$imageUploaded = DataObjectUtil::processUploadedImageProperty($image, 'fullSizePath', $structure['fullSizePath'], $file );
+				if ($imageUploaded) {
 					$image->update();
 					$result = [
 						'success' => true,
@@ -1102,46 +1091,8 @@ class WebBuilder_AJAX extends JSON_Action {
 			$hours = $locationToProcess->getHours();
 			foreach ($hours as $key => $hourObj) {
 				if (!$hourObj->closed) {
-					$hourString = $hourObj->open;
-					[
-						$hour,
-						$minutes,
-					] = explode(':', $hourString);
-					if ($hour < 12) {
-						if ($hour == 0) {
-							$hour += 12;
-						}
-						$hourObj->open = +$hour . ":$minutes AM"; // remove leading zeros in the hour
-					} elseif ($hour == 12 && $minutes == '00') {
-						$hourObj->open = 'Noon';
-					} elseif ($hour == 24 && $minutes == '00') {
-						$hourObj->open = 'Midnight';
-					} else {
-						if ($hour != 12) {
-							$hour -= 12;
-						}
-						$hourObj->open = "$hour:$minutes PM";
-					}
-					$hourString = $hourObj->close;
-					[
-						$hour,
-						$minutes,
-					] = explode(':', $hourString);
-					if ($hour < 12) {
-						if ($hour == 0) {
-							$hour += 12;
-						}
-						$hourObj->close = "$hour:$minutes AM";
-					} elseif ($hour == 12 && $minutes == '00') {
-						$hourObj->close = 'Noon';
-					} elseif ($hour == 24 && $minutes == '00') {
-						$hourObj->close = 'Midnight';
-					} else {
-						if ($hour != 12) {
-							$hour -= 12;
-						}
-						$hourObj->close = "$hour:$minutes PM";
-					}
+					$hourObj->open = DateUtils::formatHour($hourObj->open);
+					$hourObj->close = DateUtils::formatHour($hourObj->close);
 				}
 				$hours[$key] = $hourObj;
 			}

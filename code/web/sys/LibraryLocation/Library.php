@@ -610,7 +610,7 @@ class Library extends DataObject {
 
 	static $_objectStructure = [];
 	static function getObjectStructure(string $context = ''): array {
-		if (isset(self::$_objectStructure[$context]) && self::$_objectStructure[$context] !== null) {
+		if (isset(self::$_objectStructure[$context])) {
 			return self::$_objectStructure[$context];
 		}
 
@@ -5928,20 +5928,20 @@ class Library extends DataObject {
 	 * @return AspenLiDAThemeLibrary[]
 	 */
 	public function getAspenLiDAThemes(): array {
-		if (!isset($this->_themes)) {
-			$this->_themes = [];
+		if (!isset($this->_aspenLiDAThemes)) {
+			$this->_aspenLiDAThemes = [];
 			if (!empty($this->libraryId)) {
 				$libraryTheme = new AspenLiDAThemeLibrary();
 				$libraryTheme->libraryId = $this->libraryId;
 				$libraryTheme->orderBy('weight');
 				if ($libraryTheme->find()) {
 					while ($libraryTheme->fetch()) {
-						$this->_themes[$libraryTheme->id] = clone $libraryTheme;
+						$this->_aspenLiDAThemes[$libraryTheme->id] = clone $libraryTheme;
 					}
 				}
 			}
 		}
-		return $this->_themes;
+		return $this->_aspenLiDAThemes;
 	}
 	
 	/**

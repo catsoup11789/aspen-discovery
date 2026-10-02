@@ -19,7 +19,7 @@ class OAuth2Client extends DataObject {
 	static $_objectStructure = [];
 
 	static function getObjectStructure(string $context = ''): array {
-		if (isset(self::$_objectStructure[$context]) && self::$_objectStructure[$context] !== null) {
+		if (isset(self::$_objectStructure[$context])) {
 			return self::$_objectStructure[$context];
 		}
 
@@ -165,6 +165,20 @@ class OAuth2Client extends DataObject {
 			'fine:read' => 'Fine API Read Access',
 			'community:read' => 'Community API Read Access',
 			'community:write' => 'Community API Write Access',
+		];
+	}
+
+	static function getUserConsentScopeOptions(): array {
+		return [
+			'user:read' => 'View your basic library account details',
+			'user:write' => 'Update parts of your library account on your behalf',
+			'list:read' => 'View your lists and their contents',
+			'list:write' => 'Create or update your saved lists on your behalf',
+			'event:read' => 'View saved library event details',
+			'event:write' => 'Make changes to your saved events on your behalf',
+			'openid' => 'Sign you in with your library account',
+			'profile' => 'View your basic profile information',
+			'email' => 'View your email address',
 		];
 	}
 
