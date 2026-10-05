@@ -3954,7 +3954,7 @@ class SirsiDynixROA extends AbstractIlsDriver {
 			$patronHoldsAndCheckouts = $this->getWebServiceResponse('getHolds', $webServiceURL . '/user/patron/key/' . $patron->unique_ils_id . '?includeFields=' . $includeFields, null, $sessionToken);
 			if ($patronHoldsAndCheckouts && isset($patronHoldsAndCheckouts->fields)) {
 				foreach ($patronHoldsAndCheckouts->fields->circRecordList as $checkout) {
-					if (str_starts_with($checkout->key, $bibKey . ':')){
+					if (str_starts_with($checkout->key, $bibKey . ':') && $currentItemLocation == 'CHECKEDOUT'){
 						$result['message'] = translate([
 							'text' => 'A copy of this title already checked out to you, see a staff member to checkout additional copies.',
 							'isPublicFacing' => true,
