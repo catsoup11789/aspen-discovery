@@ -984,9 +984,11 @@ public class EvolveExportMain {
 					}catch (MarcException me){
 						logEntry.incRecordsWithInvalidMarc("Error processing record index " + numRecordsRead + " of " + curBibFile.getAbsolutePath() + " the last record processed was " + lastRecordProcessed + " trying to continue" + me);
 					}
-					if (isFullExportFile && numRecordsRead % 250 == 0) {
+					if (numRecordsRead % 250 == 0) {
 						logEntry.saveResults();
-						indexingProfile.updateLastChangeProcessed(dbConn, logEntry);
+						if (isFullExportFile) {
+							indexingProfile.updateLastChangeProcessed(dbConn, logEntry);
+						}
 					}
 				}
 				marcFileStream.close();
