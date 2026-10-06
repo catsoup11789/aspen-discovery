@@ -10,6 +10,7 @@ require_once __DIR__ . '/../bootstrap.php';
 require_once __DIR__ . '/../bootstrap_aspen.php';
 
 set_time_limit(0);
+ini_set('memory_limit', '2G');
 
 require_once ROOT_DIR . '/sys/Administration/BackgroundProcess.php';
 $backgroundProcess = null;
@@ -35,11 +36,14 @@ if ($argc > 3) {
 require_once ROOT_DIR . '/sys/ReplacementCost.php';
 $replacementCosts = ReplacementCost::getReplacementCostsByFormat();
 
+require_once ROOT_DIR . '/sys/Utils/GroupingUtils.php';
 require_once ROOT_DIR . '/sys/ReadingHistoryEntry.php';
 $readingHistoryEntry = new ReadingHistoryEntry();
 if (!empty($format)) {
 	$readingHistoryEntry->format = $format;
 }
+//Optimize to load by source so we can initialize fewer record drivers
+$readingHistoryEntry->orderBy(['source', 'sourceId']);
 $numEntriesToUpdate = $readingHistoryEntry->count();
 if (!is_null($backgroundProcess)) { $backgroundProcess->addNote("Updating $numEntriesToUpdate reading history entries"); }
 
@@ -47,26 +51,63 @@ $readingHistoryEntry->find();
 $numUpdated = 0;
 $loggedZeroCostFormats = [];
 
+global $indexingProfiles;
+
 //Recalculate all reading history entries
+$lastSource = '';
+$lastSourceId = '';
 while ($readingHistoryEntry->fetch()) {
+	if ($lastSource != $readingHistoryEntry->source || $lastSourceId != $readingHistoryEntry->sourceId) {
+		$lastSource = $readingHistoryEntry->source;
+		$lastSourceId = $readingHistoryEntry->sourceId;
+		//Clear cache
+		RecordDriverFactory::$recordDrivers = [];
+	}
 	$lowerFormat = strtolower($readingHistoryEntry->format);
-	if (array_key_exists($lowerFormat, $replacementCosts)) {
-		if ($replacementCosts[$lowerFormat] > 0) {
-			//Update the costSavings for the reading history entry and update the total cost savings for the user
-			$readingHistoryEntryToUpdate = new ReadingHistoryEntry();
-			$readingHistoryEntryToUpdate->id = $readingHistoryEntry->id;
-			if ($readingHistoryEntryToUpdate->find(true)) {
-				$readingHistoryEntryToUpdate->costSavings = $replacementCosts[$lowerFormat];
-				$readingHistoryEntryToUpdate->update();
-				$numUpdated++;
+	//Update the costSavings for the reading history entry and update the total cost savings for the user
+	$readingHistoryEntryToUpdate = new ReadingHistoryEntry();
+	$readingHistoryEntryToUpdate->id = $readingHistoryEntry->id;
+	if ($readingHistoryEntryToUpdate->find(true)) {
+		$useFormatMapLookup = true;
+		//We only have replacement costs at the item level for marc records from the ILS so don't bother creating drivers for anything else
+		if (array_key_exists($readingHistoryEntry->source, $indexingProfiles)) {
+			$recordDriver = RecordDriverFactory::initRecordDriverById($readingHistoryEntry->source . ':' . $readingHistoryEntry->sourceId);
+			if ($recordDriver != null) {
+				$replacementCost = getReplacementCost($recordDriver, $readingHistoryEntry->format, null, $readingHistoryEntry->barcode);
+				if ($replacementCost != 0) {
+					$readingHistoryEntryToUpdate->costSavings = $replacementCost;
+					$readingHistoryEntryToUpdate->update();
+					$numUpdated++;
+					$useFormatMapLookup = false;
+				}
+				$recordDriver = null;
 			}
 		}
-	}else{
-		if (!array_key_exists($lowerFormat, $loggedZeroCostFormats)) {
-			if (!is_null($backgroundProcess)) { $backgroundProcess->addNote("Skipping $readingHistoryEntry->format because no replacement cost was specified."); }
-			$loggedZeroCostFormats[$lowerFormat] = $lowerFormat;
+		if ($useFormatMapLookup) {
+			$foundCost = false;
+			if (array_key_exists($lowerFormat, $replacementCosts)) {
+				if ($replacementCosts[$lowerFormat] > 0) {
+					//Update the costSavings for the reading history entry and update the total cost savings for the user
+					$readingHistoryEntryToUpdate = new ReadingHistoryEntry();
+					$readingHistoryEntryToUpdate->id = $readingHistoryEntry->id;
+					if ($readingHistoryEntryToUpdate->find(true)) {
+						$readingHistoryEntryToUpdate->costSavings = $replacementCosts[$lowerFormat];
+						$readingHistoryEntryToUpdate->update();
+						$numUpdated++;
+						$foundCost = true;
+					}
+				}
+			}
+			if (!$foundCost && !array_key_exists($lowerFormat, $loggedZeroCostFormats)) {
+				if (!is_null($backgroundProcess)) {
+					$backgroundProcess->addNote("Skipping $readingHistoryEntry->format because no replacement cost was specified.");
+				}
+				$loggedZeroCostFormats[$lowerFormat] = $lowerFormat;
+			}
 		}
 	}
+	$readingHistoryEntryToUpdate->__destruct();
+	$readingHistoryEntryToUpdate = null;
 }
 
 //Now get the total cost savings for users that have checked something out in the format
