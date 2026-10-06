@@ -3952,17 +3952,31 @@ class SirsiDynixROA extends AbstractIlsDriver {
 			//Check to see if the user already has a copy of the title checked out.
 			$includeFields = urlencode("circRecordList{*,bib{title,author}},holdRecordList{*,bib{title,author},selectedItem{call{*},itemType{*},barcode}}");
 			$patronHoldsAndCheckouts = $this->getWebServiceResponse('getHolds', $webServiceURL . '/user/patron/key/' . $patron->unique_ils_id . '?includeFields=' . $includeFields, null, $sessionToken);
+
+			//First, check if item being checked out is a volume
+			$isVolume = false;
+			$lookupItemKey = $itemKey;
+			if (str_contains($itemKey, ':')) {
+				$parts = explode(':', $itemKey);
+				$lookupItemKey = $parts[0] . ':' . $parts[1];
+			}
+			require_once ROOT_DIR . '/sys/ILS/IlsVolumeInfo.php';
+			$volumeInfo = new IlsVolumeInfo();
+			$volumeInfo->volumeId = $lookupItemKey;
+			if ($volumeInfo->find(true)) {
+				$isVolume = true;
+			}
+
 			if ($patronHoldsAndCheckouts && isset($patronHoldsAndCheckouts->fields)) {
 				foreach ($patronHoldsAndCheckouts->fields->circRecordList as $checkout) {
-					if (str_starts_with($checkout->key, $bibKey . ':')){
-						$result['message'] = translate([
-							'text' => 'A copy of this title already checked out to you, see a staff member to checkout additional copies.',
+					if (str_starts_with($checkout->key, $bibKey . ':') && (!$isVolume || $checkout->fields->item->key == $itemKey)) {
+						$message = translate([
+							'text' => 'A copy of this title is already checked out to you, see a staff member to checkout additional copies.',
 							'isPublicFacing' => true,
 						]);
-						$result['api']['message'] = translate([
-							'text' => 'A copy of this title already checked out to you, see a staff member to checkout additional copies.',
-							'isPublicFacing' => true,
-						]);
+
+						$result['message'] = $message;
+						$result['api']['message'] = $message;
 						return $result;
 					}
 				}
