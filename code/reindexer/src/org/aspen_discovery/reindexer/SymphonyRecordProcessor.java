@@ -193,6 +193,8 @@ class SymphonyRecordProcessor extends IlsRecordProcessor {
 			} catch (Exception e) {
 				logger.error("Error loading on order ids", e);
 			}
+		} else {
+			logger.warn("Warning: orders.mrc not found");
 		}
 	}
 
