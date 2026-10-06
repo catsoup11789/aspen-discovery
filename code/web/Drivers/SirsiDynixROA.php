@@ -3955,8 +3955,11 @@ class SirsiDynixROA extends AbstractIlsDriver {
 
 			//First, check if item being checked out is a volume
 			$isVolume = false;
-			$parts = explode(':', $itemKey);
-			$lookupItemKey = $parts[0] . ':' . $parts[1];
+			$lookupItemKey = $itemKey;
+			if (str_contains($itemKey, ':')) {
+				$parts = explode(':', $itemKey);
+				$lookupItemKey = $parts[0] . ':' . $parts[1];
+			}
 			require_once ROOT_DIR . '/sys/ILS/IlsVolumeInfo.php';
 			$volumeInfo = new IlsVolumeInfo();
 			$volumeInfo->volumeId = $lookupItemKey;
