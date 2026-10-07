@@ -212,6 +212,11 @@ class Checkout extends CircEntry {
 
 	public function getReplacementCost() : float {
 		require_once ROOT_DIR . '/sys/Utils/GroupingUtils.php';
-		return getReplacementCost($this->getRecordDriver(), $this->format, $this->itemId, $this->barcode);
+		$recordDriver = $this->getRecordDriver();
+		if ($recordDriver instanceof GroupedWorkSubDriver) {
+			return getReplacementCost($this->getRecordDriver(), $this->format, $this->itemId, $this->barcode);
+		}else{
+			return 0;
+		}
 	}
 }
