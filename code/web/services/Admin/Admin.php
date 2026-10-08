@@ -31,7 +31,7 @@ abstract class Admin_Admin extends Action {
 		$userCanAccess = $this->canView();
 
 		if (!$userCanAccess) {
-			$this->display('../Admin/noPermission.tpl', 'Access Error');
+			$this->display('/interface/themes/responsive/Admin/noPermission.tpl', 'Access Error');
 			exit();
 		}
 

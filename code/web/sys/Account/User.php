@@ -4780,31 +4780,6 @@ class User extends DataObject {
 		$sections['circulation_reports']->addAction(new AdminAction('Barcode Generator - Disc', 'Create hub EAN-8 barcodes for CDs and DVDs.', '/Report/DiscBarcodeGenerator'), [
 			'Barcode Generators',
 		]);
-		if ($circulationReports) {
-			$sections['circulation_reports']->addAction(new AdminAction('Collection Report', 'View a report of all items for a branch.', '/Report/CollectionReport'), [
-				'View Location Collection Reports',
-				'View All Collection Reports',
-			]);
-			$sections['circulation_reports']->addAction(new AdminAction('Holds Report', 'View a report of holds to be pulled from the shelf for patrons.', '/Report/HoldsReport'), [
-				'View Location Holds Reports',
-				'View All Holds Reports',
-			]);
-			$sections['circulation_reports']->addAction(new AdminAction('Librarian Facebook', 'View images and basic information about MNPS School Librarians', '/Report/LibrarianFacebook'), [
-				'View Librarian Facebook',
-			]);
-			$sections['circulation_reports']->addAction(new AdminAction('Student Barcodes', 'View/print a report of all barcodes for a class.', '/Report/StudentBarcodes'), [
-				'View Location Student Reports',
-				'View All Student Reports',
-			]);
-			$sections['circulation_reports']->addAction(new AdminAction('Student Checkout Report', 'View a report of all checkouts for a given class with filtering to only show overdue items and lost items.', '/Report/StudentReport'), [
-				'View Location Student Reports',
-				'View All Student Reports',
-			]);
-			$sections['circulation_reports']->addAction(new AdminAction('Weeding Report', 'View a collection weeding report for all items for a branch.', '/Report/WeedingReport'), [
-				'View Location Collection Reports',
-				'View All Collection Reports',
-			]);
-		}
 
 		if (array_key_exists('Axis 360', $enabledModules)) {
 			$sections['boundless'] = new AdminSection('Boundless');
@@ -5144,7 +5119,7 @@ class User extends DataObject {
 
 		global $plugins;
 		foreach ($plugins as $plugin) {
-			$sections = array_merge($sections, $plugin->getAdminActions());
+			$sections = array_merge_recursive($sections, $plugin->getAdminActions());
 		}
 
 		$sorter = function (AdminSection $a, AdminSection $b) {

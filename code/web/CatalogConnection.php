@@ -1882,22 +1882,6 @@ class CatalogConnection {
 		$user->update();
 	}
 
-	public function getHoldsReportData($location) {
-		return $this->driver->getHoldsReportData($location);
-	}
-
-	public function getStudentReportData($location, $showOverdueOnly, $date) {
-		return $this->driver->getStudentReportData($location, $showOverdueOnly, $date);
-	}
-
-	public function getWeedingReportData($location) {
-		return $this->driver->getWeedingReportData($location);
-	}
-	
-	public function getLibrarianFacebookData() {
-		return $this->driver->getLibrarianFacebookData();
-	}
-
 	/**
 	 * Loads any contact information that is not stored by Aspen Discovery from the ILS. Updates the user object.
 	 *
