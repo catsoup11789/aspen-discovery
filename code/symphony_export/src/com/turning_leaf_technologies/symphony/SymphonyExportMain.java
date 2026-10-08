@@ -773,11 +773,18 @@ public class SymphonyExportMain {
 		File[] exportedMarcFiles = marcExportPath.listFiles((dir, name) -> name.endsWith("mrc") || name.endsWith("marc"));
 		ArrayList<File> filesToProcess = new ArrayList<>();
 		File latestFile = null;
+		File ordersFile = null;
 		long latestMarcFile = 0;
 		boolean hasFullExportFile = false;
 		File fullExportFile = null;
 		if (exportedMarcFiles != null){
 			for (File exportedMarcFile : exportedMarcFiles) {
+				//orders.mrc handling, don't delete
+				if (exportedMarcFile.getName().equals("orders.mrc")){
+					ordersFile = exportedMarcFile;
+					continue;
+				}
+				//Full export file handling
 				//Remove any files that are older than the last time we processed files.
 				if (exportedMarcFile.lastModified() / 1000 < lastUpdateFromMarc){
 					if (exportedMarcFile.delete()){
@@ -800,6 +807,11 @@ public class SymphonyExportMain {
 			filesToProcess.add(latestFile);
 			hasFullExportFile = true;
 			fullExportFile = latestFile;
+		}
+
+		//Add orders.mrc to filesToProcess if we have a full export file
+		if (hasFullExportFile && ordersFile != null && ordersFile.length() > 0){
+			filesToProcess.add(ordersFile);
 		}
 
 		//Get a list of marc deltas since the last marc record
@@ -1130,7 +1142,7 @@ public class SymphonyExportMain {
 					logEntry.saveResults();
 				}
 
-				if (!logEntry.hasErrors()) {
+				if (!logEntry.hasErrors() && !curBibFile.getName().equals("orders.mrc")) {
 					// Delete the file if we did not have errors processing the file.
 					if (!curBibFile.delete()) {
 						logEntry.addNote("Could not delete " + curBibFile + " after processing");

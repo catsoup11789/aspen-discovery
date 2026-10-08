@@ -225,7 +225,7 @@ class SymphonyRecordProcessor extends IlsRecordProcessor {
 		loadOnOrderIds();
 
 		String recordIdentifier = recordInfo.getRecordIdentifier();
-		if (onOrderIds.contains(recordIdentifier)) {
+		if (onOrderIds.contains(recordIdentifier) && !hasTangibleItems) {
 			ItemInfo itemInfo = new ItemInfo();
 			itemInfo.setLocationCode("multi");
 			itemInfo.setItemIdentifier(recordIdentifier);
@@ -244,7 +244,7 @@ class SymphonyRecordProcessor extends IlsRecordProcessor {
 			recordInfo.addItem(itemInfo);
 			groupedWork.addPopularity(1);
 
-			if (recordInfo.getNumCopiesOnOrder() > 0 && !hasTangibleItems){
+			if (recordInfo.getNumCopiesOnOrder() > 0){
 				groupedWork.addKeywords("On Order");
 				groupedWork.addKeywords("Coming Soon");
 				if (groupedWork.isDebugEnabled()) {
