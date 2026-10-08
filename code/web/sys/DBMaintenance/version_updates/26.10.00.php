@@ -16,6 +16,14 @@ function getUpdates26_10_00(): array {
 		 ], //name*/
 
 		//mark n
+		'add_validSierraNotificationOptions' => [
+			'title' => 'Add Valid Notification Options to Library Systems',
+			'description' => 'Add Valid Notification Options to Library Systems',
+			'continueOnError' => false,
+			'sql' =>[
+				"ALTER TABLE library ADD COLUMN validSierraNotificationOptions VARCHAR(25) DEFAULT ''"
+			]
+		], //add_validSierraNotificationOptions
 
 		//kirstien
 		'add_oauth2_user_consents_table' => [
