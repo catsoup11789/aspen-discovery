@@ -823,6 +823,8 @@ public class SymphonyExportMain {
 		//process unzipped files(marcExportPath)
 		File[] exportedMarcDeltaFiles = marcDeltaPath.listFiles((dir, name) -> name.endsWith("mrc") || name.endsWith("marc"));
 		if (exportedMarcDeltaFiles != null && exportedMarcDeltaFiles.length > 0){
+			//Sort the files to process by date
+			Arrays.sort(exportedMarcDeltaFiles, Comparator.comparingLong(File::lastModified));
 			for (File exportedMarcDeltaFile : exportedMarcDeltaFiles) {
 				if (exportedMarcDeltaFile.lastModified() / 1000 < lastUpdateFromMarc){
 					if (exportedMarcDeltaFile.delete()){
@@ -838,8 +840,6 @@ public class SymphonyExportMain {
 					}
 				}
 			}
-			//Sort the files to process by date
-			Arrays.sort(exportedMarcDeltaFiles, Comparator.comparingLong(File::lastModified));
 		}
 
 		if (!filesToProcess.isEmpty()){
