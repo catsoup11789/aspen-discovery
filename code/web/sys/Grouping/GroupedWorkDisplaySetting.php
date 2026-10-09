@@ -33,6 +33,7 @@ class GroupedWorkDisplaySetting extends DataObject {
 	public $showRelatedRecordLabels;
 	public $showEditionCovers;
 	public $showEarliestPublicationDateSearchResults;
+	public $showDescriptionInSearchResults;
 
 	// Contents of search
 	public $includeOutOfSystemExternalLinks;
@@ -783,6 +784,13 @@ class GroupedWorkDisplaySetting extends DataObject {
 						'type' => 'checkbox',
 						'label' => 'Show Earliest Publication Date in Search Results',
 						'description' => 'Show Earliest Publication Date in Search Results when publication dates vary for the work',
+						'default' => true,
+					],
+					'showDescriptionInSearchResults' => [
+						'property' => 'showDescriptionInSearchResults',
+						'type' => 'checkbox',
+						'label' => 'Show Description in Search Results',
+						'description' => 'Show Description in Search Results',
 						'default' => true,
 					],
 					'showIndexedSeriesWithNoveList' => [

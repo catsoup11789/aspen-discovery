@@ -24,6 +24,14 @@ function getUpdates26_10_00(): array {
 				"ALTER TABLE library ADD COLUMN validSierraNotificationOptions VARCHAR(25) DEFAULT ''"
 			]
 		], //add_validSierraNotificationOptions
+		'showDescriptionInSearchResults' => [
+			'title' => 'Show Description In Search Results',
+			'description' => 'Show Description In Search Results',
+			'continueOnError' => false,
+			'sql' =>[
+				'ALTER TABLE grouped_work_display_settings ADD COLUMN showDescriptionInSearchResults TINYINT(1) DEFAULT 1'
+			]
+		], //showDescriptionInSearchResults
 
 		//kirstien
 		'add_oauth2_user_consents_table' => [

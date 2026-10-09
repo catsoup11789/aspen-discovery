@@ -2283,6 +2283,7 @@ class GroupedWorkDriver extends IndexRecordDriver {
 		$interface->assign('formatDisplayStyle', $groupedWorkDisplaySettings->formatDisplayStyle);
 		$interface->assign('hideManifestationsInMobileView', $groupedWorkDisplaySettings->hideManifestationsInMobileView);
 		$interface->assign('displaySortTermValues', $groupedWorkDisplaySettings->displaySortTermValue);
+		$interface->assign('showDescription', $groupedWorkDisplaySettings->showDescriptionInSearchResults);
 
 		// Sort variables to show
 		$interface->assign('sortValue', $_REQUEST['sort'] ?? null);
