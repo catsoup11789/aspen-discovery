@@ -132,7 +132,7 @@ class CatalogConnection {
 					$doPatronLogin = true;
 				} else {
 					//If the password is the same, we're still ok
-					if ($user->cat_password == $password) {
+					if ($user->ils_password == $password) {
 						$doPatronLogin = false;
 					} else {
 						$doPatronLogin = true;
