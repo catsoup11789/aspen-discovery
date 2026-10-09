@@ -996,7 +996,9 @@ class SirsiDynixROA extends AbstractIlsDriver {
 	protected function loginViaWebService($username, $password) {
 		global $memCache;
 		global $library;
+		//Check for a cached user
 		$memCacheKey = "sirsiROA_session_token_info_{$library->libraryId}_{$username}_" . session_id();
+		$callAPI = true;
 		$session = $memCache->get($memCacheKey);
 		if ($session !== false) {
 			[
@@ -1005,7 +1007,18 @@ class SirsiDynixROA extends AbstractIlsDriver {
 				$sirsiRoaUserID,
 			] = $session;
 			SirsiDynixROA::$sessionIdsForUsers[$sirsiRoaUserID] = $sessionToken;
-		} else {
+			//Double-check that the cached user still matches
+			$user = new User();
+			$user->source = $this->accountProfile->name;
+			$user->username = $sirsiRoaUserID;
+			$user->unique_ils_id = $sirsiRoaUserID;
+			$user->selectAdd();
+			$user->selectAdd('ils_password');
+			if ($user->find()) {
+				$callAPI = $user->ils_password !== $password;
+			}
+		}
+		if ($callAPI) {
 			$session = [
 				false,
 				false,
@@ -1055,16 +1068,29 @@ class SirsiDynixROA extends AbstractIlsDriver {
 	protected function staffLoginViaWebService($username, $password) {
 		global $memCache;
 		global $library;
+		//Check for a cached user
 		$memCacheKey = "sirsiROA_session_token_info_{$library->libraryId}_{$username}_" . session_id();
+		$callAPI = true;
 		$session = $memCache->get($memCacheKey);
-		if ($session) {
+		if ($session !== false) {
 			[
 				,
 				$sessionToken,
 				$sirsiRoaUserID,
 			] = $session;
 			SirsiDynixROA::$sessionIdsForUsers[$sirsiRoaUserID] = $sessionToken;
-		} else {
+			//Double-check that the cached user still matches
+			$user = new User();
+			$user->source = $this->accountProfile->name;
+			$user->username = $sirsiRoaUserID;
+			$user->unique_ils_id = $sirsiRoaUserID;
+			$user->selectAdd();
+			$user->selectAdd('ils_password');
+			if ($user->find()) {
+				$callAPI = $user->ils_password !== $password;
+			}
+		}
+		if ($callAPI) {
 			$session = [
 				false,
 				false,
