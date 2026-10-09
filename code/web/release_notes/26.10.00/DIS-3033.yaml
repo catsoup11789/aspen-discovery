@@ -9,5 +9,5 @@ Component: Interface Updates and Usability
 Description:
   - Allow descriptions to be hidden in Grouped Work Search Results.
 NewSettings:
-  - Catalog / Grouped Works > Grouped Work Display > Search Results >
+  - Catalog / Grouped Works > Grouped Work Display > Search Results > Show Description in Search Results
 NewPermissions:
