@@ -321,7 +321,6 @@ class Sierra extends AbstractIlsDriver {
 				} else {
 					// inn-reach status
 					$isInnReach = true;
-					$curHold->source = $library->interLibraryLoanName;
 					$recordStatus = $recordItemStatus;
 				}
 			}
@@ -436,14 +435,13 @@ class Sierra extends AbstractIlsDriver {
 				if ($titleAuthor !== false) {
 					$curHold->title = $titleAuthor['title'];
 					$curHold->author = $titleAuthor['author'];
-					$curHold->format = 'Unknown';
 				} else {
 					$curHold->title = 'Unknown';
 					$curHold->author = 'Unknown';
 				}
+				$curHold->format = 'Unknown';
 				$curHold->sourceId = '';
 				$curHold->recordId = '';
-				$curHold->source = $library->interLibraryLoanName;
 			} else {
 				///////////////
 				// ILS HOLD
@@ -452,9 +450,13 @@ class Sierra extends AbstractIlsDriver {
 				$recordType = $sierraHold->recordType;
 				// for item level holds we need to grab the bib id.
 				$id = $recordId; //$m[1];
+				$volumeId = '';
 				if ($recordType == 'i') {
 					$itemId = ".i$id" . $this->getCheckDigit($id);
 					$id = $this->getBibIdForItem($itemId, $id);
+				} else if ($recordType == 'j') {
+					$volumeId = ".j$id" . $this->getCheckDigit($id);
+					$id = $this->getBibIdForVolume($volumeId, $id);
 				} else {
 					$recordXD = $this->getCheckDigit($id);
 					$id = ".b$id$recordXD";
@@ -480,6 +482,14 @@ class Sierra extends AbstractIlsDriver {
 									$curHold->volume = $groupingItem->volume;
 									$curHold->callNumber = $groupingItem->callNumber;
 								}
+							}
+						}else if ($recordType == 'j') {
+							//Set the volume and call number
+							$ilsVolumeInfo = new IlsVolumeInfo();
+							$ilsVolumeInfo->volumeId = $volumeId;
+							if ($ilsVolumeInfo->find(true)) {
+								$curHold->volume = $ilsVolumeInfo->displayLabel;
+								$curHold->callNumber =  "";
 							}
 						}
 					}
@@ -833,7 +843,6 @@ class Sierra extends AbstractIlsDriver {
 					$curCheckout->barcode = $entry->barcode;
 				}
 				if (str_contains($entry->item, "@")) {
-					$curCheckout->source = $library->interLibraryLoanName;
 					$curCheckout->sourceId = '';
 					$curCheckout->recordId = '';
 					$titleAuthor = $this->getTitleAndAuthorForInnReachCheckout($checkoutId);
@@ -1044,6 +1053,51 @@ class Sierra extends AbstractIlsDriver {
 				$id = '.b' . $id . $this->getCheckDigit($id);
 			}else if (is_string($itemInfo->bibIds)) {
 				$id = $itemInfo->bibIds;
+				$id = '.b' . $id . $this->getCheckDigit($id);
+			}else{
+				$id = false;
+			}
+		} else {
+			$id = false;
+		}
+		return $id;
+	}
+
+	/**
+	 * @param string $volumeId
+	 * @param string|null $shortId
+	 * @return string|false
+	 */
+	private function getBibIdForVolume(string $volumeId, ?string $shortId) : string|false {
+		require_once ROOT_DIR . '/sys/ILS/IlsVolumeInfo.php';
+		$ilsVolumeInfo = new IlsVolumeInfo();
+		$ilsVolumeInfo->volumeId = $volumeId;
+		$id = false;
+		if ($ilsVolumeInfo->find(true)) {
+			$id = $ilsVolumeInfo->recordId;
+			if (str_contains($id, ':')) {
+				list (, $id) = explode(':', $id);
+			}
+		}
+		if (!$id && !empty($shortId)) {
+			//Lookup the bib id from the Sierra APIs
+			$sierraUrl = $this->accountProfile->vendorOpacUrl;
+			$sierraUrl .= "/iii/sierra-api/v{$this->accountProfile->apiVersion}/volumes/$shortId";
+			$id = $this->getBibIdFromVolumeLink($sierraUrl);
+		}
+		return $id;
+	}
+
+	private function getBibIdFromVolumeLink(string $volumeLink) : string|false {
+		$volumeInfo = $this->_callUrl('sierra.getVolumeInfo', $volumeLink);
+		if (!empty($volumeInfo)) {
+			if (empty($volumeInfo->bibIds)) {
+				$id = false;
+			}else if (is_array($volumeInfo->bibIds)) {
+				$id = reset($volumeInfo->bibIds);
+				$id = '.b' . $id . $this->getCheckDigit($id);
+			}else if (is_string($volumeInfo->bibIds)) {
+				$id = $volumeInfo->bibIds;
 				$id = '.b' . $id . $this->getCheckDigit($id);
 			}else{
 				$id = false;
@@ -1379,9 +1433,7 @@ class Sierra extends AbstractIlsDriver {
 	 * TODO: This should be updated to not use screen scraping
 	 */
 	public function placeVolumeHold(User $patron, $recordId, $volumeId, $pickupBranch, $pickupSublocation = null) : array {
-		require_once ROOT_DIR . '/Drivers/marmot_inc/MillenniumHolds.php';
-		$millenniumHolds = new MillenniumHolds($this);
-		return $millenniumHolds->placeVolumeHold($patron, $recordId, $volumeId, $pickupBranch);
+		return $this->placeHold($patron, $volumeId, $pickupBranch, $pickupSublocation);
 	}
 
 	public function hasFastRenewAll() : bool {
@@ -2595,32 +2647,60 @@ class Sierra extends AbstractIlsDriver {
 		}
 	}
 
-	private function getValidNotificationOptions($patron = null) : array {
+	private function getValidNotificationOptions(?User $patron = null) : array {
 		$sierraDnaConnection = $this->connectToSierraDNA();
-		if ($patron != null) {
-			$patronId = $patron->unique_ils_id;
-			$getNotificationOptionsStmt = "SELECT nm.code, nm.name, (pv.notification_medium_code IS NOT NULL) AS selected 
-			FROM sierra_view.notification_medium_property_myuser AS nm
-			LEFT JOIN sierra_view.patron_view AS pv ON pv.notification_medium_code = nm.code AND pv.record_num = $1 ORDER BY nm.display_order;";
-			$getNotificationOptionsRS = pg_query_params($sierraDnaConnection, $getNotificationOptionsStmt, [$patronId]);
-		} else {
-			$getNotificationOptionsStmt = "SELECT code, name FROM sierra_view.notification_medium_property_myuser ORDER BY display_order;";
-			$getNotificationOptionsRS = pg_query($sierraDnaConnection, $getNotificationOptionsStmt);
-		}
-		if ($getNotificationOptionsRS === false) {
-			return [];
-		} else {
-			$options = [];
-			while ($curRow = pg_fetch_array($getNotificationOptionsRS, NULL, PGSQL_ASSOC)) {
-				if ($patron != null) {
-					$options[$curRow['code']]['name'] = $curRow['name'];
-					$options[$curRow['code']]['selected'] = $curRow['selected'] == 't';
-				} else {
-					$options[$curRow['code']] = $curRow['name'];
+		$options = [];
+		if ($sierraDnaConnection) {
+			if ($patron != null) {
+				$patronId = $patron->unique_ils_id;
+				$getNotificationOptionsStmt = "SELECT nm.code, nm.name, (pv.notification_medium_code IS NOT NULL) AS selected 
+				FROM sierra_view.notification_medium_property_myuser AS nm
+				LEFT JOIN sierra_view.patron_view AS pv ON pv.notification_medium_code = nm.code AND pv.record_num = $1 ORDER BY nm.display_order;";
+				$getNotificationOptionsRS = pg_query_params($sierraDnaConnection, $getNotificationOptionsStmt, [$patronId]);
+			} else {
+				$getNotificationOptionsStmt = "SELECT code, name FROM sierra_view.notification_medium_property_myuser ORDER BY display_order;";
+				$getNotificationOptionsRS = pg_query($sierraDnaConnection, $getNotificationOptionsStmt);
+			}
+			if ($getNotificationOptionsRS !== false) {
+				while ($curRow = pg_fetch_array($getNotificationOptionsRS, NULL, PGSQL_ASSOC)) {
+					if ($patron != null) {
+						$options[$curRow['code']]['name'] = $curRow['name'];
+						$options[$curRow['code']]['selected'] = $curRow['selected'] == 't';
+					} else {
+						$options[$curRow['code']] = $curRow['name'];
+					}
 				}
 			}
-			return $options;
+		}else{
+			$options = [
+				'-' => [
+					'name' => '---',
+					'selected' => false
+				],
+				'z' => [
+					'name' => 'Email',
+					'selected' => true
+				],
+				'a' => [
+					'name' => 'Print',
+					'selected' => false
+				],
+				'p' => [
+					'name' => 'Phone',
+					'selected' => false
+				],
+			];
 		}
+		if ($patron) {
+			$optionFilter = $patron->getHomeLibrary() == null ? '' : $patron->getHomeLibrary()->validSierraNotificationOptions;
+			if (!empty($optionFilter)) {
+				$optionFilter = explode('|', $optionFilter);
+				$options = array_filter($options, function ($optionCode) use ($optionFilter) {
+					return in_array($optionCode, $optionFilter);
+				}, ARRAY_FILTER_USE_KEY);
+			}
+		}
+		return $options;
 	}
 
 	/**

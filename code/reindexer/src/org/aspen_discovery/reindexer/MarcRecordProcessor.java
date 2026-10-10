@@ -410,7 +410,7 @@ abstract class MarcRecordProcessor {
 			if (seriesField.getIndicator2() == '1' && seriesField.getSubfield('a') != null) {
 				seriesAuthor = seriesField.getSubfield('a').getData();
 			}
-			groupedWork.addSeriesWithVolume(series, seriesAuthor, volume, 3, false);
+			groupedWork.addSeriesWithVolume(series, seriesAuthor, volume, 3, false, false);
 		}
 
 		seriesFields = MarcUtil.getDataFields(record, seriesFieldsToIndexWith800);
@@ -445,7 +445,7 @@ abstract class MarcRecordProcessor {
 			if (seriesField.getSubfield('a') != null) {
 				seriesAuthor = seriesField.getSubfield('a').getData();
 			}
-			groupedWork.addSeriesWithVolume(series, seriesAuthor, volume, 5, false);
+			groupedWork.addSeriesWithVolume(series, seriesAuthor, volume, 5, false, false);
 		}
 
 		seriesFields = MarcUtil.getDataFields(record, 490);
@@ -468,7 +468,7 @@ abstract class MarcRecordProcessor {
 
 				//490 does not have a series author field
 				String seriesAuthor = "";
-				groupedWork.addSeriesWithVolume(series, seriesAuthor, volume, 1, true);
+				groupedWork.addSeriesWithVolume(series, seriesAuthor, volume, 1, true, false);
 			}
 		}
 
@@ -494,7 +494,7 @@ abstract class MarcRecordProcessor {
 		loadLexileScore(groupedWork, record);
 		groupedWork.addContentRating(getContentRating(record));
 		// set.of() creates an immutable set. If keywordExclusions needs to be modified by using .add() in the future, this will need to be changed
-		Set<String> keywordExclusions = (settings != null && settings.excludePublisherFromKeywordIndex()) ? Set.of("260b", "264b") : Set.of();
+		Set<String> keywordExclusions = (settings != null && settings.excludePublisherFromKeywordIndex()) ? Set.of("260b", "264b", "776d") : Set.of();
 		groupedWork.addKeywords(MarcUtil.getAllSearchableFields(record, 100, 900, keywordExclusions));
 		groupedWork.addKeywords(MarcUtil.getAllSubfields(record, "010:028", ""));
 		//Settings are nullable for eContent that is in MARC format (i.e. cloudLibrary)

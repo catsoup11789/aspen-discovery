@@ -16,10 +16,56 @@ function getUpdates26_10_00(): array {
 		 ], //name*/
 
 		//mark n
+		'add_validSierraNotificationOptions' => [
+			'title' => 'Add Valid Notification Options to Library Systems',
+			'description' => 'Add Valid Notification Options to Library Systems',
+			'continueOnError' => false,
+			'sql' =>[
+				"ALTER TABLE library ADD COLUMN validSierraNotificationOptions VARCHAR(25) DEFAULT ''"
+			]
+		], //add_validSierraNotificationOptions
+		'showDescriptionInSearchResults' => [
+			'title' => 'Show Description In Search Results',
+			'description' => 'Show Description In Search Results',
+			'continueOnError' => false,
+			'sql' =>[
+				'ALTER TABLE grouped_work_display_settings ADD COLUMN showDescriptionInSearchResults TINYINT(1) DEFAULT 1'
+			]
+		], //showDescriptionInSearchResults
 
 		//kirstien
+		'add_oauth2_user_consents_table' => [
+			'title' => 'Add OAuth2 User Consents Table',
+			'description' => 'Stores remembered OAuth2 authorization consent per user and client.',
+			'continueOnError' => false,
+			'sql' => [
+				"CREATE TABLE IF NOT EXISTS oauth2_user_consents (
+					id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					user_id INT NOT NULL,
+					oauth2_client_id INT NOT NULL,
+					scopes TEXT,
+					dateCreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+					lastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+					UNIQUE KEY unique_user_client_consent (user_id, oauth2_client_id),
+					INDEX idx_user_id (user_id),
+					INDEX idx_oauth2_client_id (oauth2_client_id),
+					FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+					FOREIGN KEY (oauth2_client_id) REFERENCES oauth2_clients(id) ON DELETE CASCADE
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+			],
+		],
+		//add_oauth2_user_consents_table
 
 		//kodi
+		'series_member_user_defined_volume' => [
+			'title' => 'User Defined Volumes for Series Members (V2 Series)',
+			'description' => 'Add column for storing if a series member has a user-defined volume value.',
+			'continueOnError' => false,
+			'sql' => [
+				"ALTER TABLE series_member ADD COLUMN userDefinedVolume TINYINT(1) NOT NULL DEFAULT 0",
+			],
+		],
+		//series_member_user_defined_volume
 
 		//yanjun
 

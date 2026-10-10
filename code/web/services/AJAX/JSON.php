@@ -571,6 +571,8 @@ class AJAX_JSON extends Action {
 	function getDisplaySettingsForm() {
 		global $interface;
 
+		$interface->assign('displaySettingTextSize', $_SESSION['preferredTextSize'] ?? 'default');
+
 		return [
 			'title' => translate([
 				'text' => 'Display Settings',
@@ -619,6 +621,11 @@ class AJAX_JSON extends Action {
 			if ($activeThemeId != $preferredTheme) {
 				$_SESSION['preferredTheme'] = $preferredTheme;
 			}
+		}
+
+		if (isset($_REQUEST['preferredTextSize'])) {
+			$preferredTextSize = strip_tags($_REQUEST['preferredTextSize']);
+			$_SESSION['preferredTextSize'] = $preferredTextSize;
 		}
 
 		return [
