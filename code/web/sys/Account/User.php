@@ -5119,7 +5119,18 @@ class User extends DataObject {
 
 		global $plugins;
 		foreach ($plugins as $plugin) {
-			$sections = array_merge_recursive($sections, $plugin->getAdminActions());
+			$pluginSections = $plugin->getAdminActions();
+			if (!empty($pluginSections) && is_array($pluginSections)) {
+				foreach ($pluginSections as $sectionKey => $pluginSection) {
+					if ($pluginSection instanceof AdminSection) {
+						if (isset($sections[$sectionKey])) {
+							$sections[$sectionKey]->actions = array_merge($sections[$sectionKey]->actions, $pluginSection->actions);
+						} else {
+							$sections[$sectionKey] = $pluginSection;
+						}
+					}
+				}
+			}
 		}
 
 		$sorter = function (AdminSection $a, AdminSection $b) {
